@@ -99,11 +99,11 @@ class Database(AbstractBase):
         def insert_group(session):
             return session.transaction().execute(
                 """
-                    INSERT INTO `groups` (`created_by`, `name`) 
+                    INSERT INTO `groups` (`created_at`, `created_by`, `name`) 
                     VALUES ({}, "{}")
                     RETURNING *
                 """.format(
-                    # datetime.datetime.now(),
+                    datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     user.id,
                     name
                 ),

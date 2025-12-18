@@ -51,7 +51,6 @@ def handler(event, context):
 
             if event['queryStringParameters']['method'] == 'groups/create':
                 group_name = base64.b64decode(event['body']).decode('utf-8')
-                print(group_name)
                 db.create_group(user, group_name)
 
     return {
