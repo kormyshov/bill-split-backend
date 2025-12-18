@@ -1,4 +1,3 @@
-import base64
 import json
 from utils import (
     validate_telegram_data,
