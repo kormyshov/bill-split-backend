@@ -19,6 +19,10 @@ class AbstractBase(ABC):
     def get_group_list(self, user: UserORM) -> List[GroupORM]:
         pass
 
+    @abstractmethod
+    def create_group(self, user: UserORM, name: str) -> None:
+        pass
+
 
 class UserDoesntExistInDB(Exception):
     pass

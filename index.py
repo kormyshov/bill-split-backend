@@ -1,3 +1,4 @@
+import base64
 import json
 from utils import (
     validate_telegram_data,
@@ -49,7 +50,8 @@ def handler(event, context):
                 }
 
             if event['queryStringParameters']['method'] == 'groups/create':
-                pass
+                group_name = base64.b64decode(event['body']).decode('utf-8')
+                db.create_group(user, group_name)
 
     return {
         'statusCode': 200,

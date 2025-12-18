@@ -1,5 +1,6 @@
 import ydb
 from typing import List
+import datetime
 
 from config import Config
 from user_orm import UserORM
@@ -93,3 +94,35 @@ class Database(AbstractBase):
 
         result = self.pool.retry_operation_sync(select)
         return [GroupORM(id=e.id, created_at=e.created_at, name=e.name.decode('utf-8')) for e in result[0].rows]
+
+    def create_group(self, user: UserORM, name: str) -> None:
+        def insert_group(session):
+            return session.transaction().execute(
+                """
+                    INSERT INTO `groups` (`created_at`, `created_by`, `name`) 
+                    VALUES ({}, {}, "{}")
+                    RETURNING *
+                """.format(
+                    datetime.datetime.now(),
+                    user.id,
+                    name
+                ),
+                commit_tx=True,
+                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
+            )
+
+        def insert_member(session):
+            return session.transaction().execute(
+                """
+                    INSERT INTO `group_members` (`group_id`, `user_id`) 
+                    VALUES ({}, {})
+                """.format(
+                    result[0].rows[0].id,
+                    user.id
+                ),
+                commit_tx=True,
+                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
+            )
+
+        result = self.pool.retry_operation_sync(insert_group)
+        self.pool.retry_operation_sync(insert_member)
