@@ -99,13 +99,13 @@ class Database(AbstractBase):
         def insert_group(session):
             return session.transaction().execute(
                 """
-                    INSERT INTO `groups` (`created_at`, `created_by`, `name`) 
-                    VALUES ({}, {}, "{}")
+                    INSERT INTO `groups` (`created_by`, `name`) 
+                    VALUES ({}, "{}")
                     RETURNING *
                 """.format(
-                    datetime.datetime.now(),
+                    # datetime.datetime.now(),
                     user.id,
-                    name.encode('utf-8')
+                    name
                 ),
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
