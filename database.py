@@ -105,7 +105,7 @@ class Database(AbstractBase):
                 """.format(
                     datetime.datetime.now(),
                     user.id,
-                    name
+                    name.encode('utf-8')
                 ),
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
