@@ -50,9 +50,9 @@ class Database(AbstractBase):
 
         return UserORM(
             id=result[0].rows[0].id,
-            telegram_id=result[0].rows[0].telegram_id.decode('utf-8'),
-            first_name=result[0].rows[0].first_name.decode('utf-8'),
-            last_name=result[0].rows[0].last_name.decode('utf-8'),
+            telegram_id=result[0].rows[0].telegram_id,
+            first_name=result[0].rows[0].first_name,
+            last_name=result[0].rows[0].last_name,
         )
 
     def create_user(self, telegram_id: str, first_name: str, last_name: str) -> None:
