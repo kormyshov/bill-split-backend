@@ -93,14 +93,14 @@ class Database(AbstractBase):
             )
 
         result = self.pool.retry_operation_sync(select)
-        return [GroupORM(id=e.id, created_at=e.created_at, name=e.name.decode('utf-8')) for e in result[0].rows]
+        return [GroupORM(id=e.id, created_at=e.created_at, name=e.name) for e in result[0].rows]
 
     def create_group(self, user: UserORM, name: str) -> None:
         def insert_group(session):
             return session.transaction().execute(
                 """
                     INSERT INTO `groups` (`created_at`, `created_by`, `name`) 
-                    VALUES ({}, "{}")
+                    VALUES ("{}", {}, "{}")
                     RETURNING *
                 """.format(
                     datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
