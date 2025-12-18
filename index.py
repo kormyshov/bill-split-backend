@@ -32,10 +32,10 @@ def handler(event, context):
                 'body': '{"groups": []}',
             }
 
-        if event['queryStringParameters']['method'] == 'init_db' and validate_init_db(event['queryStringParameters']['user']):
+        if event['queryStringParameters']['method'] == 'init_db' and validate_init_db(event['queryStringParameters']['user_id']):
             pass
 
-        if event['queryStringParameters']['user'] == 'test' or validate_telegram_data(event['queryStringParameters'].get('validate', '')):
+        if event['queryStringParameters']['user_id'] == 'test' or validate_telegram_data(event['queryStringParameters'].get('validate', '')):
             if event['queryStringParameters']['method'] == 'groups/get_list':
                 groups = db.get_group_list(user)
 
