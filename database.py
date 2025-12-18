@@ -59,7 +59,7 @@ class Database(AbstractBase):
         def upsert(session):
             return session.transaction().execute(
                 """
-                    INSERT INTO `user` (`telegram_id`, `first_name`, `last_name`) 
+                    INSERT INTO `users` (`telegram_id`, `first_name`, `last_name`) 
                     VALUES ("{}", "{}", "{}")
                 """.format(
                     telegram_id,
