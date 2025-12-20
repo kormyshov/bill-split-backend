@@ -5,3 +5,4 @@ class GroupORM(NamedTuple):
     id: int
     name: str
     created_at: str
+    count: int

@@ -81,9 +81,18 @@ class Database(AbstractBase):
                         `g`.`id` AS `id`,
                         `created_at`,
                         `name`,
+                        `count`,
                     FROM `group_members` AS `gm`
                     LEFT JOIN `groups` AS `g`
                     ON `gm`.`group_id` == `g`.`id`
+                    LEFT JOIN (
+                        SELECT
+                            `group_id`,
+                            COUNT(*) AS `count`,
+                        FROM `group_members`
+                        GROUP BY `group_id`
+                    ) AS `gc`
+                    ON `gm`.`group_id` == `gc`.`group_id`
                     WHERE `gm`.`user_id` == {};
                 """.format(
                     user.id
@@ -93,7 +102,7 @@ class Database(AbstractBase):
             )
 
         result = self.pool.retry_operation_sync(select)
-        return [GroupORM(id=e.id, created_at=e.created_at, name=e.name) for e in result[0].rows]
+        return [GroupORM(id=e.id, created_at=e.created_at, name=e.name, count=e.count) for e in result[0].rows]
 
     def create_group(self, user: UserORM, name: str) -> None:
         def insert_group(session):
