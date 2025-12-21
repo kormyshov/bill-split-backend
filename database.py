@@ -141,7 +141,7 @@ class Database(AbstractBase):
             return session.transaction().execute(
                 """
                     UPSERT INTO `groups` (`id`, `name`) 
-                    VALUES ({}, {})
+                    VALUES ({}, "{}")
                 """.format(
                     group_id,
                     name
