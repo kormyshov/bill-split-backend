@@ -55,7 +55,7 @@ def handler(event, context):
 
             if event['queryStringParameters']['method'] == 'groups/change_name':
                 input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
-                db.create_group(user, group_name)
+                db.change_group_name(input['group_id'], input['name'])
 
     return {
         'statusCode': 200,
