@@ -135,3 +135,19 @@ class Database(AbstractBase):
 
         result = self.pool.retry_operation_sync(insert_group)
         self.pool.retry_operation_sync(insert_member)
+
+    def change_group_name(self, group_id: int, name: str) -> None:
+        def upsert(session):
+            return session.transaction().execute(
+                """
+                    UPSERT INTO `groups` (`id`, `name`) 
+                    VALUES ({}, {})
+                """.format(
+                    group_id,
+                    name
+                ),
+                commit_tx=True,
+                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
+            )
+
+        self.pool.retry_operation_sync(upsert)

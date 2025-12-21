@@ -23,6 +23,10 @@ class AbstractBase(ABC):
     def create_group(self, user: UserORM, name: str) -> None:
         pass
 
+    @abstractmethod
+    def change_group_name(self, group_id: int, name: str) -> None:
+        pass
+
 
 class UserDoesntExistInDB(Exception):
     pass
