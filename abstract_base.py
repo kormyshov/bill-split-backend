@@ -24,7 +24,7 @@ class AbstractBase(ABC):
         pass
 
     @abstractmethod
-    def change_group_name(self, group_id: int, name: str) -> None:
+    def change_group_name(self, group_id: int, name: str, created_at: str, created_by: int) -> None:
         pass
 
 

@@ -80,6 +80,7 @@ class Database(AbstractBase):
                     SELECT
                         `g`.`id` AS `id`,
                         `created_at`,
+                        `created_by`,
                         `name`,
                         `count`,
                     FROM `group_members` AS `gm`
@@ -102,7 +103,10 @@ class Database(AbstractBase):
             )
 
         result = self.pool.retry_operation_sync(select)
-        return [GroupORM(id=e.id, created_at=e.created_at, name=e.name, count=e.count) for e in result[0].rows]
+        return [
+            GroupORM(id=e.id, created_at=e.created_at, name=e.name, count=e.count, created_by=e.created_by)
+            for e in result[0].rows
+        ]
 
     def create_group(self, user: UserORM, name: str) -> None:
         def insert_group(session):
@@ -136,15 +140,17 @@ class Database(AbstractBase):
         result = self.pool.retry_operation_sync(insert_group)
         self.pool.retry_operation_sync(insert_member)
 
-    def change_group_name(self, group_id: int, name: str) -> None:
+    def change_group_name(self, group_id: int, name: str, created_at: str, created_by: int) -> None:
         def upsert(session):
             return session.transaction().execute(
                 """
-                    UPSERT INTO `groups` (`id`, `name`) 
-                    VALUES ({}, "{}")
+                    UPSERT INTO `groups` (`id`, `name`, `created_at`, `created_by`) 
+                    VALUES ({}, "{}", "{}", {})
                 """.format(
                     group_id,
-                    name
+                    name,
+                    created_at,
+                    created_by
                 ),
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
