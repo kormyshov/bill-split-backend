@@ -157,3 +157,29 @@ class Database(AbstractBase):
             )
 
         self.pool.retry_operation_sync(upsert)
+
+    def get_group_member_list(self, group_id: int) -> List[UserORM]:
+        def select(session):
+            return session.transaction().execute(
+                """
+                    SELECT
+                        `u`.`id` AS `id`,
+                        `telegram_id`,
+                        `first_name`,
+                        `last_name`,
+                    FROM `group_members` AS `gm`
+                    LEFT JOIN `users` AS `u`
+                    ON `gm`.`user_id` == `u`.`id`
+                    WHERE `gm`.`group_id` == {};
+                """.format(
+                    group_id
+                ),
+                commit_tx=True,
+                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
+            )
+
+        result = self.pool.retry_operation_sync(select)
+        return [
+            UserORM(id=e.id, telegram_id=e.telegram_id, first_name=e.first_name, last_name=e.last_name)
+            for e in result[0].rows
+        ]

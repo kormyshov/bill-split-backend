@@ -27,6 +27,10 @@ class AbstractBase(ABC):
     def change_group_name(self, group_id: int, name: str, created_at: str, created_by: int) -> None:
         pass
 
+    @abstractmethod
+    def get_group_member_list(self, group_id: int) -> List[UserORM]:
+        pass
+
 
 class UserDoesntExistInDB(Exception):
     pass
