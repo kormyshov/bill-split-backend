@@ -58,7 +58,7 @@ def handler(event, context):
                 db.change_group_name(input['group_id'], input['name'], input['created_at'], input['created_by'])
 
             if event['queryStringParameters']['method'] == 'groups/get_member_list':
-                group_id = int(base64.b64decode(event['body']).decode('utf-8'))
+                group_id = int(event['queryStringParameters']['group_id'])
                 group_members = db.get_group_member_list(group_id)
 
                 return {
