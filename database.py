@@ -201,7 +201,7 @@ class Database(AbstractBase):
                         {} AS `user_id`,
                     FROM `groups`
                     WHERE 
-                        Digest::Md5Hex(CAST(`g`.`id` AS String) || `created_at` || CAST(`created_by` AS String)) == {}
+                        Digest::Md5Hex(CAST(`g`.`id` AS String) || `created_at` || CAST(`created_by` AS String)) == "{}"
                 """.format(
                     user.id,
                     group_token
