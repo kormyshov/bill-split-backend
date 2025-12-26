@@ -111,7 +111,7 @@ class Database(AbstractBase):
                 name=e.name,
                 count=e.count,
                 created_by=e.created_by,
-                token=e.token
+                token=e.token.decode('utf-8')
             ) for e in result[0].rows
         ]
 
