@@ -195,7 +195,7 @@ class Database(AbstractBase):
         def insert_member(session):
             return session.transaction().execute(
                 """
-                    INSERT INTO `group_members` (`group_id`, `user_id`)
+                    INSERT INTO `group_members`
                     SELECT
                         `id` AS `group_id`,
                         {} AS `user_id`,
