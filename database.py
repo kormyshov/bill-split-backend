@@ -190,3 +190,24 @@ class Database(AbstractBase):
             UserORM(id=e.id, telegram_id=e.telegram_id, first_name=e.first_name, last_name=e.last_name)
             for e in result[0].rows
         ]
+
+    def join_to_group(self, user: UserORM, group_token: str) -> None:
+        def insert_member(session):
+            return session.transaction().execute(
+                """
+                    INSERT INTO `group_members` (`group_id`, `user_id`)
+                    SELECT
+                        `id` AS `group_id`,
+                        {} AS `user_id`,
+                    FROM `groups`
+                    WHERE 
+                        Digest::Md5Hex(CAST(`g`.`id` AS String) || `created_at` || CAST(`created_by` AS String)) == {}
+                """.format(
+                    user.id,
+                    group_token
+                ),
+                commit_tx=True,
+                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
+            )
+
+        self.pool.retry_operation_sync(insert_member)

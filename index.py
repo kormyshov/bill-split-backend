@@ -70,6 +70,10 @@ def handler(event, context):
                     ''',
                 }
 
+            if event['queryStringParameters']['method'] == 'groups/join':
+                group_token = base64.b64decode(event['body']).decode('utf-8')
+                db.create_group(user, group_token)
+
     return {
         'statusCode': 200,
         'body': '{}',

@@ -31,6 +31,10 @@ class AbstractBase(ABC):
     def get_group_member_list(self, group_id: int) -> List[UserORM]:
         pass
 
+    @abstractmethod
+    def join_to_group(self, user: UserORM, group_token: str) -> None:
+        pass
+
 
 class UserDoesntExistInDB(Exception):
     pass
