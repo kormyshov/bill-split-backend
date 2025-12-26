@@ -83,7 +83,7 @@ class Database(AbstractBase):
                         `created_by`,
                         `name`,
                         `count`,
-                        Digest::Md5Hex(CAST(`g`.`id` AS String) || `created_at` || `created_by`) AS `token`,
+                        Digest::Md5Hex(CAST(`g`.`id` AS String) || `created_at` || CAST(`created_by` AS String)) AS `token`,
                     FROM `group_members` AS `gm`
                     LEFT JOIN `groups` AS `g`
                     ON `gm`.`group_id` == `g`.`id`
