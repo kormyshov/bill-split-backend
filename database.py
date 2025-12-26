@@ -83,6 +83,7 @@ class Database(AbstractBase):
                         `created_by`,
                         `name`,
                         `count`,
+                        Digest::Md5Hex(CAST(`g`.`id` AS String) || `created_at` || `created_by`) AS `token`,
                     FROM `group_members` AS `gm`
                     LEFT JOIN `groups` AS `g`
                     ON `gm`.`group_id` == `g`.`id`
@@ -104,8 +105,14 @@ class Database(AbstractBase):
 
         result = self.pool.retry_operation_sync(select)
         return [
-            GroupORM(id=e.id, created_at=e.created_at, name=e.name, count=e.count, created_by=e.created_by)
-            for e in result[0].rows
+            GroupORM(
+                id=e.id,
+                created_at=e.created_at,
+                name=e.name,
+                count=e.count,
+                created_by=e.created_by,
+                token=e.token
+            ) for e in result[0].rows
         ]
 
     def create_group(self, user: UserORM, name: str) -> None:

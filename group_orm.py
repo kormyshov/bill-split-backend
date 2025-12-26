@@ -7,3 +7,4 @@ class GroupORM(NamedTuple):
     created_at: str
     created_by: int
     count: int
+    token: str
