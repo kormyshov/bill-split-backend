@@ -35,6 +35,10 @@ class AbstractBase(ABC):
     def join_to_group(self, user: UserORM, group_token: str) -> None:
         pass
 
+    @abstractmethod
+    def leave_group(self, user: UserORM, group_id: int) -> None:
+        pass
+
 
 class UserDoesntExistInDB(Exception):
     pass

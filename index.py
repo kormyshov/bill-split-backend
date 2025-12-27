@@ -74,6 +74,10 @@ def handler(event, context):
                 group_token = base64.b64decode(event['body']).decode('utf-8')
                 db.join_to_group(user, group_token)
 
+            if event['queryStringParameters']['method'] == 'groups/leave':
+                group_id = int(base64.b64decode(event['body']).decode('utf-8'))
+                db.leave_group(user, group_id)
+
     return {
         'statusCode': 200,
         'body': '{}',

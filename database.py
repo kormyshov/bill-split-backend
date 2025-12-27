@@ -211,3 +211,21 @@ class Database(AbstractBase):
             )
 
         self.pool.retry_operation_sync(insert_member)
+
+    def leave_group(self, user: UserORM, group_id: int) -> None:
+        def delete_member(session):
+            return session.transaction().execute(
+                """
+                    DELETE FROM `group_members`
+                    WHERE
+                        `group_id` == {} AND
+                        `user_id` == {}
+                """.format(
+                    group_id,
+                    user.id,
+                ),
+                commit_tx=True,
+                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
+            )
+
+        self.pool.retry_operation_sync(delete_member)
