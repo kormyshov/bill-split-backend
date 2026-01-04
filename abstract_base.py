@@ -3,6 +3,7 @@ from typing import List
 
 from user_orm import UserORM
 from group_orm import GroupORM
+from expense_orm import ExpenseORM
 
 
 class AbstractBase(ABC):
@@ -37,6 +38,10 @@ class AbstractBase(ABC):
 
     @abstractmethod
     def leave_group(self, user: UserORM, group_id: int) -> None:
+        pass
+
+    @abstractmethod
+    def get_group_expense_list(self, group_id: int) -> List[ExpenseORM]:
         pass
 
 

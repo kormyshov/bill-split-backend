@@ -5,6 +5,7 @@ import datetime
 from config import Config
 from user_orm import UserORM
 from group_orm import GroupORM
+from expense_orm import ExpenseORM
 from abstract_base import (
     AbstractBase,
     UserDoesntExistInDB,
@@ -229,3 +230,40 @@ class Database(AbstractBase):
             )
 
         self.pool.retry_operation_sync(delete_member)
+
+    def get_group_expense_list(self, group_id: int) -> List[ExpenseORM]:
+        def select(session):
+            return session.transaction().execute(
+                """
+                    SELECT
+                        `e`.`id` AS `id`,
+                        `e`.`name` AS `name`,
+                        `e`.`created_at` AS `created_at`,
+                        `e`.`amount` AS `amount`,
+                        `c`.`symbol` AS `currency_symbol`,
+                        `u`.`first_name` || " " || `u`.`last_name` AS `first_and_last_name`,
+                    FROM `expenses` AS `e`
+                    LEFT JOIN `currencies` AS `c`
+                    ON `e`.`currency` == `c`.`id`
+                    LEFT JOIN `users` AS `u`
+                    ON `e`.`paid_by` == `u`.`id`
+                    WHERE `e`.`group_id` == {};
+                """.format(
+                    group_id
+                ),
+                commit_tx=True,
+                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
+            )
+
+        result = self.pool.retry_operation_sync(select)
+        return [
+            ExpenseORM(
+                id=e.id,
+                name=e.name,
+                created_at=e.created_at,
+                first_and_last_name=e.first_and_last_name,
+                amount=e.amount,
+                currency_symbol=e.currency_symbol,
+            )
+            for e in result[0].rows
+        ]

@@ -78,6 +78,19 @@ def handler(event, context):
                 group_id = int(base64.b64decode(event['body']).decode('utf-8'))
                 db.leave_group(user, group_id)
 
+            if event['queryStringParameters']['method'] == 'groups/get_expense_list':
+                group_id = int(event['queryStringParameters']['group_id'])
+                group_expenses = db.get_group_expense_list(group_id)
+
+                return {
+                    'statusCode': 200,
+                    'body': '''
+                        {
+                            "group_expenses": ''' + json.dumps(group_expenses) + '''                    
+                        }
+                    ''',
+                }
+
     return {
         'statusCode': 200,
         'body': '{}',
