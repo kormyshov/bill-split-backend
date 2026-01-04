@@ -261,7 +261,7 @@ class Database(AbstractBase):
                 id=e.id,
                 name=e.name,
                 created_at=e.created_at,
-                first_and_last_name=e.first_and_last_name,
+                first_and_last_name=e.first_and_last_name.decode('utf-8'),
                 amount=e.amount,
                 currency_symbol=e.currency_symbol,
             )

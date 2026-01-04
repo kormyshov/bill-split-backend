@@ -81,14 +81,6 @@ def handler(event, context):
             if event['queryStringParameters']['method'] == 'groups/get_expense_list':
                 group_id = int(event['queryStringParameters']['group_id'])
                 group_expenses = db.get_group_expense_list(group_id)
-                print(group_expenses)
-                print(group_expenses[0])
-                print(group_expenses[0].id)
-                print(group_expenses[0].name)
-                print(group_expenses[0].created_at)
-                print(group_expenses[0].first_and_last_name)
-                print(group_expenses[0].amount)
-                print(group_expenses[0].currency_symbol)
 
                 return {
                     'statusCode': 200,
