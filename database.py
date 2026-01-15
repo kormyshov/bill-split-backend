@@ -6,6 +6,7 @@ from config import Config
 from user_orm import UserORM
 from group_orm import GroupORM
 from expense_orm import ExpenseORM
+from debt_orm import DebtORM
 from abstract_base import (
     AbstractBase,
     UserDoesntExistInDB,
@@ -264,6 +265,51 @@ class Database(AbstractBase):
                 first_and_last_name=e.first_and_last_name.decode('utf-8'),
                 amount=e.amount,
                 currency_symbol=e.currency_symbol,
+            )
+            for e in result[0].rows
+        ]
+
+    def get_expense_debt_list(self, expense_id: int) -> List[DebtORM]:
+        def select(session):
+            return session.transaction().execute(
+                """
+                    SELECT
+                        `d`.`id` AS `id`,
+                        `e`.`name` AS `expense_name`,
+                        `e`.`created_at` AS `created_at`,
+                        `e`.`amount` AS `total_amount`,
+                        `c`.`symbol` AS `currency_symbol`,
+                        `u`.`first_name` || " " || `u`.`last_name` AS `paid_by_first_and_last_name`,
+                        `d`.`amount` AS `debt_amount`,
+                        `uu`.`first_name` || " " || `uu`.`last_name` AS `first_and_last_name`,
+                    FROM `expenses` AS `e`
+                    LEFT JOIN `currencies` AS `c`
+                    ON `e`.`currency` == `c`.`id`
+                    LEFT JOIN `users` AS `u`
+                    ON `e`.`paid_by` == `u`.`id`
+                    LEFT JOIN `debts` AS `d`
+                    ON `e`.`id` == `d`.`expense_id`
+                    LEFT JOIN `users` AS `uu`
+                    ON `d`.`user_id` == `uu`.`id`
+                    WHERE `e`.`id` == {};
+                """.format(
+                    expense_id
+                ),
+                commit_tx=True,
+                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
+            )
+
+        result = self.pool.retry_operation_sync(select)
+        return [
+            DebtORM(
+                id=e.id,
+                expense_name=e.expense_name,
+                created_at=e.created_at,
+                total_amount=e.total_amount,
+                currency_symbol=e.currency_symbol,
+                paid_by_first_and_last_name=e.paid_by_first_and_last_name.decode('utf-8'),
+                debt_amount=e.debt_amount,
+                first_and_last_name=e.first_and_last_name.decode('utf-8')
             )
             for e in result[0].rows
         ]

@@ -91,6 +91,19 @@ def handler(event, context):
                     ''',
                 }
 
+            if event['queryStringParameters']['method'] == 'expenses/get_debt_list':
+                expense_id = int(event['queryStringParameters']['expense_id'])
+                expense_debts = db.get_expense_debt_list(expense_id)
+
+                return {
+                    'statusCode': 200,
+                    'body': '''
+                        {
+                            "expense_debts": ''' + json.dumps(expense_debts) + '''                    
+                        }
+                    ''',
+                }
+
     return {
         'statusCode': 200,
         'body': '{}',

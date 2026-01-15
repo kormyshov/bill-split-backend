@@ -4,6 +4,7 @@ from typing import List
 from user_orm import UserORM
 from group_orm import GroupORM
 from expense_orm import ExpenseORM
+from debt_orm import DebtORM
 
 
 class AbstractBase(ABC):
@@ -42,6 +43,10 @@ class AbstractBase(ABC):
 
     @abstractmethod
     def get_group_expense_list(self, group_id: int) -> List[ExpenseORM]:
+        pass
+
+    @abstractmethod
+    def get_expense_debt_list(self, expense_id: int) -> List[DebtORM]:
         pass
 
 
