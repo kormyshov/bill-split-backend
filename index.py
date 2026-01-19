@@ -110,7 +110,7 @@ def handler(event, context):
                     user,
                     input['group_id'],
                     input['expense_name'],
-                    input['expense_amount'] * 100,
+                    int(input['expense_amount'] * 100),
                     input['expense_currency'],
                 )
 
@@ -120,8 +120,10 @@ def handler(event, context):
                     db.create_debt(
                         expense_id,
                         user_id,
-                        input['expense_amount'] * 100 // cnt if i != 0 else
-                        input['expense_amount'] * 100 - (input['expense_amount'] * 100 // cnt) * (cnt - 1)
+                        int(
+                            input['expense_amount'] * 100 // cnt if i != 0 else
+                            input['expense_amount'] * 100 - (input['expense_amount'] * 100 // cnt) * (cnt - 1)
+                        )
                     )
 
     return {
