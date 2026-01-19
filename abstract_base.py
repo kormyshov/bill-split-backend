@@ -49,6 +49,14 @@ class AbstractBase(ABC):
     def get_expense_debt_list(self, expense_id: int) -> List[DebtORM]:
         pass
 
+    @abstractmethod
+    def create_expense(self, user: UserORM, group_id: int, name: str, amount: int, currency_id: int) -> int:
+        pass
+
+    @abstractmethod
+    def create_debt(self, expense_id: int, user_id: int, amount: int) -> None:
+        pass
+
 
 class UserDoesntExistInDB(Exception):
     pass

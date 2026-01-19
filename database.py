@@ -313,3 +313,42 @@ class Database(AbstractBase):
             )
             for e in result[0].rows
         ]
+
+    def create_expense(self, user: UserORM, group_id: int, name: str, amount: int, currency_id: int) -> int:
+        def insert_expense(session):
+            return session.transaction().execute(
+                """
+                    INSERT INTO `expenses` (`created_at`, `group_id`, `name`, `paid_by`, `amount`, `currency`) 
+                    VALUES ("{}", {}, "{}", {}, {}, {})
+                    RETURNING *
+                """.format(
+                    datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    group_id,
+                    name,
+                    user.id,
+                    amount,
+                    currency_id
+                ),
+                commit_tx=True,
+                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
+            )
+
+        result = self.pool.retry_operation_sync(insert_expense)
+        return result[0].rows[0].id
+
+    def create_debt(self, expense_id: int, user_id: int, amount: int) -> None:
+        def upsert(session):
+            return session.transaction().execute(
+                """
+                    INSERT INTO `debts` (`expense_id`, `user_id`, `amount`) 
+                    VALUES ({}, {}, {})
+                """.format(
+                    expense_id,
+                    user_id,
+                    amount
+                ),
+                commit_tx=True,
+                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
+            )
+
+        self.pool.retry_operation_sync(upsert)

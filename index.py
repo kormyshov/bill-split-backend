@@ -104,6 +104,26 @@ def handler(event, context):
                     ''',
                 }
 
+            if event['queryStringParameters']['method'] == 'expenses/create_equally':
+                input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
+                expense_id = db.create_expense(
+                    user,
+                    input['group_id'],
+                    input['expense_name'],
+                    input['expense_amount'] * 100,
+                    input['expense_currency'],
+                )
+
+                cnt = len(input['user_ids'])
+
+                for i, user_id in enumerate(input['user_ids']):
+                    db.create_debt(
+                        expense_id,
+                        user_id,
+                        input['expense_amount'] * 100 // cnt if i != 0 else
+                        input['expense_amount'] * 100 - (input['expense_amount'] * 100 // cnt) * (cnt - 1)
+                    )
+
     return {
         'statusCode': 200,
         'body': '{}',
