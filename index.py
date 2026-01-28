@@ -126,6 +126,29 @@ def handler(event, context):
                         )
                     )
 
+            if event['queryStringParameters']['method'] == 'expenses/create_custom':
+                input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
+                expense_id = db.create_expense(
+                    user,
+                    input['group_id'],
+                    input['expense_name'],
+                    int(input['expense_amount'] * 100),
+                    input['expense_currency'],
+                )
+
+                cnt = len(input['totals'])
+                rest = int(input['expense_amount'] * 100)
+
+                for i, item in enumerate(input['totals']):
+                    db.create_debt(
+                        expense_id,
+                        item['memberId'],
+                        int(
+                            int(item['total'] * 100) if i != cnt - 1 else rest
+                        )
+                    )
+                    rest -= int(item['total'] * 100)
+
     return {
         'statusCode': 200,
         'body': '{}',
