@@ -352,3 +352,23 @@ class Database(AbstractBase):
             )
 
         self.pool.retry_operation_sync(upsert)
+
+    def delete_expense(self, expense_id: int) -> None:
+        def delete(session):
+            return session.transaction().execute(
+                """
+                    DELETE FROM `expenses`
+                    WHERE `id` == {}
+                    ;
+                    DELETE FROM `debts`
+                    WHERE `expense_id` == {}
+                    ;
+                """.format(
+                    expense_id,
+                    expense_id,
+                ),
+                commit_tx=True,
+                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
+            )
+
+        self.pool.retry_operation_sync(delete)

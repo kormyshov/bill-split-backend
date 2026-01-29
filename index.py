@@ -149,6 +149,10 @@ def handler(event, context):
                     )
                     rest -= int(item['total'] * 100)
 
+            if event['queryStringParameters']['method'] == 'expenses/delete':
+                expense_id = int(base64.b64decode(event['body']).decode('utf-8'))
+                db.delete_expense(expense_id)
+
     return {
         'statusCode': 200,
         'body': '{}',

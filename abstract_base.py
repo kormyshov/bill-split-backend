@@ -57,6 +57,10 @@ class AbstractBase(ABC):
     def create_debt(self, expense_id: int, user_id: int, amount: int) -> None:
         pass
 
+    @abstractmethod
+    def delete_expense(self, expense_id: int) -> None:
+        pass
+
 
 class UserDoesntExistInDB(Exception):
     pass
