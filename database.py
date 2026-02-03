@@ -265,7 +265,7 @@ class Database(AbstractBase):
                     ;
 
                     SELECT
-                        `debt_amount`,
+                        `debt_amount` ?? 0 AS `debt_amount,
                         `a`.* WITHOUT `a`.`paid_by`,
                     FROM $a AS `a`
                     LEFT JOIN $b AS `b`
