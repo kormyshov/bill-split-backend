@@ -8,3 +8,4 @@ class ExpenseORM(NamedTuple):
     first_and_last_name: str
     amount: int
     currency_symbol: str
+    debt_amount: int

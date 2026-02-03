@@ -232,10 +232,11 @@ class Database(AbstractBase):
 
         self.pool.retry_operation_sync(delete_member)
 
-    def get_group_expense_list(self, group_id: int) -> List[ExpenseORM]:
+    def get_group_expense_list(self, user: UserORM, group_id: int) -> List[ExpenseORM]:
         def select(session):
             return session.transaction().execute(
                 """
+                    $a =
                     SELECT
                         `e`.`id` AS `id`,
                         `e`.`name` AS `name`,
@@ -243,14 +244,37 @@ class Database(AbstractBase):
                         `e`.`amount` AS `amount`,
                         `c`.`symbol` AS `currency_symbol`,
                         `u`.`first_name` || " " || `u`.`last_name` AS `first_and_last_name`,
+                        `e`.`paid_by` AS `paid_by`,
                     FROM `expenses` AS `e`
                     LEFT JOIN `currencies` AS `c`
                     ON `e`.`currency` == `c`.`id`
                     LEFT JOIN `users` AS `u`
                     ON `e`.`paid_by` == `u`.`id`
-                    WHERE `e`.`group_id` == {};
+                    WHERE `e`.`group_id` == {}
+                    ;
+
+                    $b =
+                    SELECT
+                        `id`,
+                        SOME(`a`.`amount`) * IF (SOME(`a`.`paid_by`) == {}, 1, 0) -
+                        SUM_IF(`d`.`amount`, `d`.`user_id` == {}) AS `debt_amount`,
+                    FROM `debts` AS `d`
+                    INNER JOIN $a AS `a`
+                    ON `d`.`expense_id` == `a`.`id`
+                    GROUP BY `a`.`id` AS `id`
+                    ;
+
+                    SELECT
+                        `debt_amount`,
+                        `a`.* WITHOUT `a`.`paid_by`,
+                    FROM $a AS `a`
+                    LEFT JOIN $b AS `b`
+                    USING (`id`)
+                    ;
                 """.format(
-                    group_id
+                    group_id,
+                    user.id,
+                    user.id
                 ),
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
@@ -265,6 +289,7 @@ class Database(AbstractBase):
                 first_and_last_name=e.first_and_last_name.decode('utf-8'),
                 amount=e.amount,
                 currency_symbol=e.currency_symbol,
+                debt_amount=e.debt_amount,
             )
             for e in result[0].rows
         ]

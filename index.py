@@ -80,7 +80,7 @@ def handler(event, context):
 
             if event['queryStringParameters']['method'] == 'groups/get_expense_list':
                 group_id = int(event['queryStringParameters']['group_id'])
-                group_expenses = db.get_group_expense_list(group_id)
+                group_expenses = db.get_group_expense_list(user, group_id)
 
                 return {
                     'statusCode': 200,

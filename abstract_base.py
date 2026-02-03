@@ -42,7 +42,7 @@ class AbstractBase(ABC):
         pass
 
     @abstractmethod
-    def get_group_expense_list(self, group_id: int) -> List[ExpenseORM]:
+    def get_group_expense_list(self, user: UserORM, group_id: int) -> List[ExpenseORM]:
         pass
 
     @abstractmethod
