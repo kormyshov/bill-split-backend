@@ -257,7 +257,7 @@ class Database(AbstractBase):
                     SELECT
                         `id`,
                         SOME(`a`.`amount`) * IF (SOME(`a`.`paid_by`) == {}, 1, 0) -
-                        SUM_IF(`d`.`amount`, `d`.`user_id` == {}) AS `debt_amount`,
+                        (SUM_IF(`d`.`amount`, `d`.`user_id` == {}) ?? 0) AS `debt_amount`,
                     FROM `debts` AS `d`
                     INNER JOIN $a AS `a`
                     ON `d`.`expense_id` == `a`.`id`
