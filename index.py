@@ -153,6 +153,19 @@ def handler(event, context):
                 expense_id = int(base64.b64decode(event['body']).decode('utf-8'))
                 db.delete_expense(expense_id)
 
+            if event['queryStringParameters']['method'] == 'groups/get_balance_list':
+                group_id = int(event['queryStringParameters']['group_id'])
+                group_balances = db.get_group_balance_list(user, group_id)
+
+                return {
+                    'statusCode': 200,
+                    'body': '''
+                        {
+                            "group_balances": ''' + json.dumps(group_balances) + '''                    
+                        }
+                    ''',
+                }
+
     return {
         'statusCode': 200,
         'body': '{}',

@@ -7,6 +7,7 @@ from user_orm import UserORM
 from group_orm import GroupORM
 from expense_orm import ExpenseORM
 from debt_orm import DebtORM
+from balance_orm import BalanceORM
 from abstract_base import (
     AbstractBase,
     UserDoesntExistInDB,
@@ -408,3 +409,100 @@ class Database(AbstractBase):
             )
 
         self.pool.retry_operation_sync(delete)
+
+    def get_group_balance_list(self, user: UserORM, group_id: int) -> List[BalanceORM]:
+        def select(session):
+            return session.transaction().execute(
+                """
+                    $input =
+                    SELECT
+                        `id`,
+                        `currency`,
+                        `paid_by`,
+                    FROM `expenses`
+                    WHERE `group_id` == {}
+                    ;
+
+                    $from_ = 
+                    SELECT
+                        *
+                    FROM $input
+                    WHERE `paid_by` == {}
+                    ;
+
+                    $from =
+                    SELECT
+                        `e`.`currency` AS `currency`,
+                        `d`.`user_id` AS `user_id`,
+                        `d`.`amount` AS `amount`,
+                    FROM $from_ AS `e`
+                    LEFT JOIN `debts` AS `d`
+                    ON `e`.`id` == `d`.`expense_id`
+                    WHERE `user_id` != {}
+                    ;
+
+                    $to_ =
+                    SELECT
+                        *
+                    FROM $input
+                    WHERE `paid_by` != {}
+                    ;
+
+                    $to =
+                    SELECT
+                        `e`.`currency` AS `currency`,
+                        `e`.`paid_by` AS `user_id`,
+                        -`d`.`amount` AS `amount`,
+                    FROM $to_ AS `e`
+                    INNER JOIN `debts` AS `d`
+                    ON `e`.`id` == `d`.`expense_id`
+                    WHERE `user_id` == {}
+                    ;
+
+                    $total =
+                    SELECT
+                        `user_id`,
+                        `currency`,
+                        SUM(`amount`) AS `amount`,
+                    FROM (
+                        SELECT * FROM $from
+                        UNION ALL
+                        SELECT * FROM $to
+                    )
+                    GROUP BY `user_id`, `currency`
+                    ;
+
+                    SELECT
+                        `t`.`user_id` AS `user_id`,
+                        `t`.`currency` AS `currency`,
+                        `t`.`amount` AS `amount`,
+                        `c`.`symbol` AS `currency_symbol`,
+                        `u`.`first_name` || " " || `u`.`last_name` AS `first_and_last_name`,
+                    FROM $total AS `t`
+                    LEFT JOIN `currencies` AS `c`
+                    ON `t`.`currency` == `c`.`id`
+                    LEFT JOIN `users` AS `u`
+                    ON `t`.`user_id` == `u`.`id`
+                    ;
+                """.format(
+                    group_id,
+                    user.id,
+                    user.id,
+                    user.id,
+                    user.id
+                ),
+                commit_tx=True,
+                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
+            )
+
+        result = self.pool.retry_operation_sync(select)
+        return [
+            BalanceORM(
+                user_id=e.user_id,
+                currency=e.currency,
+                amount=e.amount,
+                currency_symbol=e.currency_symbol,
+                first_and_last_name=e.first_and_last_name.decode('utf-8'),
+            )
+            for e in result[0].rows
+        ]

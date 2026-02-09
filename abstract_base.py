@@ -5,6 +5,7 @@ from user_orm import UserORM
 from group_orm import GroupORM
 from expense_orm import ExpenseORM
 from debt_orm import DebtORM
+from balance_orm import BalanceORM
 
 
 class AbstractBase(ABC):
@@ -59,6 +60,10 @@ class AbstractBase(ABC):
 
     @abstractmethod
     def delete_expense(self, expense_id: int) -> None:
+        pass
+
+    @abstractmethod
+    def get_group_balance_list(self, user: UserORM, group_id: int) -> List[BalanceORM]:
         pass
 
 
