@@ -236,6 +236,18 @@ class Database(AbstractBase):
         def select(session):
             return session.transaction().execute(
                 """
+                    $input =
+                    SELECT
+                        `id`,
+                        `name`,
+                        `created_at`,
+                        `amount`,
+                        `currency`,
+                        `paid_by`,
+                    FROM `expenses`
+                    WHERE `group_id` == {}
+                    ;
+
                     $a =
                     SELECT
                         `e`.`id` AS `id`,
@@ -245,12 +257,11 @@ class Database(AbstractBase):
                         `c`.`symbol` AS `currency_symbol`,
                         `u`.`first_name` || " " || `u`.`last_name` AS `first_and_last_name`,
                         `e`.`paid_by` AS `paid_by`,
-                    FROM `expenses` AS `e`
+                    FROM $input AS `e`
                     LEFT JOIN `currencies` AS `c`
                     ON `e`.`currency` == `c`.`id`
                     LEFT JOIN `users` AS `u`
                     ON `e`.`paid_by` == `u`.`id`
-                    WHERE `e`.`group_id` == {}
                     ;
 
                     $b =
