@@ -156,14 +156,14 @@ def handler(event, context):
                         user,
                         input['group_id'],
                         user.first_name + ' ' + user.last_name + ' paid ' + input['first_and_last_name'],
-                        int(input['amount']),
+                        -int(input['amount']),
                         input['currency'],
                     )
 
                     db.create_debt(
                         expense_id,
                         input['user_id'],
-                        int(input['amount']),
+                        -int(input['amount']),
                     )
                 else:
                     expense_id = db.create_expense(
