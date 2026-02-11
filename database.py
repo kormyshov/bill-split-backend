@@ -470,6 +470,7 @@ class Database(AbstractBase):
                         SELECT * FROM $to
                     )
                     GROUP BY `user_id`, `currency`
+                    HAVING SUM(`amount`) != 0
                     ;
 
                     SELECT
