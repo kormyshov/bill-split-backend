@@ -166,7 +166,7 @@ def handler(event, context):
                         -int(input['amount']),
                     )
                 else:
-                    payer: UserORM = db.get_user_info(input['user_id'])
+                    payer = UserORM(input['user_id'], '', '', '')
                     expense_id = db.create_expense(
                         payer,
                         input['group_id'],
