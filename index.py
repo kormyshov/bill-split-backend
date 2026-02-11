@@ -149,6 +149,37 @@ def handler(event, context):
                     )
                     rest -= int(item['total'] * 100)
 
+            if event['queryStringParameters']['method'] == 'expenses/create_direct':
+                input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
+                if int(input['amount']) < 0:
+                    expense_id = db.create_expense(
+                        user,
+                        input['group_id'],
+                        user.first_name + ' ' + user.last_name + ' paid ' + input['first_and_last_name'],
+                        int(input['amount']),
+                        input['currency'],
+                    )
+
+                    db.create_debt(
+                        expense_id,
+                        input['user_id'],
+                        int(input['amount']),
+                    )
+                else:
+                    expense_id = db.create_expense(
+                        input['user_id'],
+                        input['group_id'],
+                        input['first_and_last_name'] + ' paid ' + user.first_name + ' ' + user.last_name,
+                        int(input['amount']),
+                        input['currency'],
+                        )
+
+                    db.create_debt(
+                        expense_id,
+                        user.id,
+                        int(input['amount']),
+                    )
+
             if event['queryStringParameters']['method'] == 'expenses/delete':
                 expense_id = int(base64.b64decode(event['body']).decode('utf-8'))
                 db.delete_expense(expense_id)
