@@ -28,10 +28,7 @@ def handler(event, context):
                 event['queryStringParameters']['last_name'],
             )
 
-            return {
-                'statusCode': 200,
-                'body': '{"groups": []}',
-            }
+            user: UserORM = db.get_user_info(event['queryStringParameters']['user_id'])
 
         if event['queryStringParameters']['method'] == 'init_db' and validate_init_db(event['queryStringParameters']['user_id']):
             pass
