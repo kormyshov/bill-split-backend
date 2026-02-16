@@ -198,16 +198,29 @@ class Database(AbstractBase):
         def insert_member(session):
             return session.transaction().execute(
                 """
+                    $group_id = 
+                    SELECT
+                        `id`,
+                    FROM `groups`
+                    WHERE
+                        Digest::Md5Hex(CAST(`id` AS String) || `created_at` || CAST(`created_by` AS String)) == "{}"
+                    ;
+
+                    DELETE FROM `group_members`
+                    WHERE
+                        `group_id` == $group_id AND
+                        `user_id` == {}
+                    ;
+
                     INSERT INTO `group_members`
                     SELECT
-                        `id` AS `group_id`,
-                        {} AS `user_id`,
-                    FROM `groups`
-                    WHERE 
-                        Digest::Md5Hex(CAST(`id` AS String) || `created_at` || CAST(`created_by` AS String)) == "{}"
+                        $group_id  ?? 1 AS `group_id`,
+                        {} AS `user_id`
+                    ;
                 """.format(
+                    group_token,
                     user.id,
-                    group_token
+                    user.id,
                 ),
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
