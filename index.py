@@ -34,6 +34,16 @@ def handler(event, context):
             pass
 
         if event['queryStringParameters']['user_id'] == 'test' or validate_telegram_data(event['queryStringParameters'].get('validate', '')):
+            if event['queryStringParameters']['method'] == 'account/get_info':
+                return {
+                    'statusCode': 200,
+                    'body': '''
+                        {
+                            "groups": ''' + json.dumps(user) + '''
+                        }
+                    ''',
+                }
+
             if event['queryStringParameters']['method'] == 'groups/get_list':
                 groups = db.get_group_list(user)
 
