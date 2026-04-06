@@ -190,12 +190,8 @@ class Database(AbstractBase):
 
         result = self.pool.retry_operation_sync(select)
         return [
-            UserORM(
-                id=e.id,
-                telegram_id=e.telegram_id,
-                first_name=e.first_name,
-                last_name=e.last_name,
-            ) for e in result[0].rows
+            UserORM(id=e.id, telegram_id=e.telegram_id, first_name=e.first_name, last_name=e.last_name)
+            for e in result[0].rows
         ]
 
     def join_to_group(self, user: UserORM, group_token: str) -> None:
