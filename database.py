@@ -38,6 +38,7 @@ class Database(AbstractBase):
                         `telegram_id`,
                         `first_name`,
                         `last_name`,
+                        `expired_date` ?? '1900-01-01' AS `expired_date`,
                     FROM `users`
                     WHERE `telegram_id` == "{}";
                 """.format(
@@ -57,6 +58,7 @@ class Database(AbstractBase):
             telegram_id=result[0].rows[0].telegram_id,
             first_name=result[0].rows[0].first_name,
             last_name=result[0].rows[0].last_name,
+            expired_date=result[0].rows[0].expired_date,
         )
 
     def create_user(self, telegram_id: str, first_name: str, last_name: str) -> None:
@@ -190,8 +192,13 @@ class Database(AbstractBase):
 
         result = self.pool.retry_operation_sync(select)
         return [
-            UserORM(id=e.id, telegram_id=e.telegram_id, first_name=e.first_name, last_name=e.last_name)
-            for e in result[0].rows
+            UserORM(
+                id=e.id,
+                telegram_id=e.telegram_id,
+                first_name=e.first_name,
+                last_name=e.last_name,
+                expired_date='1900-01-01',
+            ) for e in result[0].rows
         ]
 
     def join_to_group(self, user: UserORM, group_token: str) -> None:
