@@ -38,7 +38,7 @@ class Database(AbstractBase):
                         `telegram_id`,
                         `first_name`,
                         `last_name`,
-                        `expired_date` ?? '1900-01-01' AS `expired_date`,
+                        `expired_date` ?? "1900-01-01" AS `expired_date`,
                     FROM `users`
                     WHERE `telegram_id` == "{}";
                 """.format(
