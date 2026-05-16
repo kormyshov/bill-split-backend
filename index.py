@@ -114,7 +114,7 @@ def handler(event, context):
             if event['queryStringParameters']['method'] == 'expenses/create_equally':
                 input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
                 expense_id = db.create_expense(
-                    user.id,
+                    input['payer_id'],
                     input['group_id'],
                     input['expense_name'],
                     int(input['expense_amount'] * 100),
@@ -136,7 +136,7 @@ def handler(event, context):
             if event['queryStringParameters']['method'] == 'expenses/create_custom':
                 input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
                 expense_id = db.create_expense(
-                    user.id,
+                    input['payer_id'],
                     input['group_id'],
                     input['expense_name'],
                     int(input['expense_amount'] * 100),
