@@ -372,7 +372,7 @@ class Database(AbstractBase):
             for e in result[0].rows
         ]
 
-    def create_expense(self, user: UserORM, group_id: int, name: str, amount: int, currency_id: int) -> int:
+    def create_expense(self, user_id: int, group_id: int, name: str, amount: int, currency_id: int) -> int:
         def insert_expense(session):
             return session.transaction().execute(
                 """
@@ -383,7 +383,7 @@ class Database(AbstractBase):
                     datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     group_id,
                     name,
-                    user.id,
+                    user_id,
                     amount,
                     currency_id
                 ),

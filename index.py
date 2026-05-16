@@ -114,7 +114,7 @@ def handler(event, context):
             if event['queryStringParameters']['method'] == 'expenses/create_equally':
                 input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
                 expense_id = db.create_expense(
-                    user,
+                    user.id,
                     input['group_id'],
                     input['expense_name'],
                     int(input['expense_amount'] * 100),
@@ -136,7 +136,7 @@ def handler(event, context):
             if event['queryStringParameters']['method'] == 'expenses/create_custom':
                 input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
                 expense_id = db.create_expense(
-                    user,
+                    user.id,
                     input['group_id'],
                     input['expense_name'],
                     int(input['expense_amount'] * 100),
@@ -160,7 +160,7 @@ def handler(event, context):
                 input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
                 if int(input['amount']) < 0:
                     expense_id = db.create_expense(
-                        user,
+                        user.id,
                         input['group_id'],
                         user.first_name + ' ' + user.last_name + ' paid ' + input['first_and_last_name'],
                         -int(input['amount']),
@@ -173,9 +173,8 @@ def handler(event, context):
                         -int(input['amount']),
                     )
                 else:
-                    payer = UserORM(input['user_id'], '', '', '')
                     expense_id = db.create_expense(
-                        payer,
+                        input['user_id'],
                         input['group_id'],
                         input['first_and_last_name'] + ' paid ' + user.first_name + ' ' + user.last_name,
                         int(input['amount']),

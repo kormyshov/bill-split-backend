@@ -51,7 +51,7 @@ class AbstractBase(ABC):
         pass
 
     @abstractmethod
-    def create_expense(self, user: UserORM, group_id: int, name: str, amount: int, currency_id: int) -> int:
+    def create_expense(self, user_id: int, group_id: int, name: str, amount: int, currency_id: int) -> int:
         pass
 
     @abstractmethod
