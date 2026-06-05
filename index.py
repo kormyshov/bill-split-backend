@@ -12,6 +12,21 @@ from database import Database
 from user_orm import UserORM
 
 
+def create_direct_expense(db: AbstractBase, user_id_from: int, user_id_to: int, group_id: int, name_from: str, name_to: str, amount: int, currency_id: int) -> None:
+    expense_id = db.create_expense(
+        user_id_from,
+        group_id,
+        name_from + ' paid ' + name_to,
+        amount,
+        currency_id,
+    )
+
+    db.create_debt(
+        expense_id,
+        user_id_to,
+        amount,
+    )
+
 def handler(event, context):
 
     print(event)
@@ -159,32 +174,26 @@ def handler(event, context):
             if event['queryStringParameters']['method'] == 'expenses/create_direct':
                 input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
                 if int(input['amount']) < 0:
-                    expense_id = db.create_expense(
+                    create_direct_expense(
+                        db,
                         user.id,
+                        input['user_id'],
                         input['group_id'],
-                        user.first_name + ' ' + user.last_name + ' paid ' + input['first_and_last_name'],
+                        user.first_name + ' ' + user.last_name,
+                        input['first_and_last_name'],
                         -int(input['amount']),
                         input['currency'],
-                    )
-
-                    db.create_debt(
-                        expense_id,
-                        input['user_id'],
-                        -int(input['amount']),
                     )
                 else:
-                    expense_id = db.create_expense(
+                    create_direct_expense(
+                        db,
                         input['user_id'],
+                        user.id,
                         input['group_id'],
-                        input['first_and_last_name'] + ' paid ' + user.first_name + ' ' + user.last_name,
+                        input['first_and_last_name'],
+                        user.first_name + ' ' + user.last_name,
                         int(input['amount']),
                         input['currency'],
-                        )
-
-                    db.create_debt(
-                        expense_id,
-                        user.id,
-                        int(input['amount']),
                     )
 
             if event['queryStringParameters']['method'] == 'expenses/delete':
