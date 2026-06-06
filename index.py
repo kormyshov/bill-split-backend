@@ -3,6 +3,7 @@ import json
 from utils import (
     validate_telegram_data,
     validate_init_db,
+    create_direct_expense,
 )
 from abstract_base import (
     AbstractBase,
@@ -11,21 +12,6 @@ from abstract_base import (
 from database import Database
 from user_orm import UserORM
 
-
-def create_direct_expense(db: AbstractBase, user_id_from: int, user_id_to: int, group_id: int, name_from: str, name_to: str, amount: int, currency_id: int) -> None:
-    expense_id = db.create_expense(
-        user_id_from,
-        group_id,
-        name_from + ' paid ' + name_to,
-        amount,
-        currency_id,
-    )
-
-    db.create_debt(
-        expense_id,
-        user_id_to,
-        amount,
-    )
 
 def handler(event, context):
 

@@ -2,6 +2,7 @@ import hmac
 import hashlib
 from urllib.parse import unquote
 from config import Config
+from abstract_base import AbstractBase
 
 
 def validate_telegram_data(data: str) -> bool:
@@ -22,3 +23,19 @@ def validate_telegram_data(data: str) -> bool:
 
 def validate_init_db(user: str) -> bool:
     return Config.BOT_TOKEN == user
+
+
+def create_direct_expense(db: AbstractBase, user_id_from: int, user_id_to: int, group_id: int, name_from: str, name_to: str, amount: int, currency_id: int) -> None:
+    expense_id = db.create_expense(
+        user_id_from,
+        group_id,
+        name_from + ' paid ' + name_to,
+        amount,
+        currency_id,
+    )
+
+    db.create_debt(
+        expense_id,
+        user_id_to,
+        amount,
+    )
