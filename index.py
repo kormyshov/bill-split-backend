@@ -1,8 +1,15 @@
 import base64
 import json
-from utils import (
+
+from debt_draft import DebtDraft
+from utils.optimize_payments import optimize_payments
+from utils.validates import (
     validate_telegram_data,
     validate_init_db,
+)
+from utils.db import (
+    create_equally_expense,
+    create_custom_expense,
     create_direct_expense,
 )
 from abstract_base import (
@@ -114,48 +121,27 @@ def handler(event, context):
 
             if event['queryStringParameters']['method'] == 'expenses/create_equally':
                 input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
-                expense_id = db.create_expense(
+                create_equally_expense(
+                    db,
                     input['payer_id'],
                     input['group_id'],
                     input['expense_name'],
                     int(input['expense_amount'] * 100),
                     input['expense_currency'],
+                    input['user_ids'],
                 )
-
-                cnt = len(input['user_ids'])
-
-                for i, user_id in enumerate(input['user_ids']):
-                    db.create_debt(
-                        expense_id,
-                        user_id,
-                        int(
-                            input['expense_amount'] * 100 // cnt if i != 0 else
-                            input['expense_amount'] * 100 - (input['expense_amount'] * 100 // cnt) * (cnt - 1)
-                        )
-                    )
 
             if event['queryStringParameters']['method'] == 'expenses/create_custom':
                 input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
-                expense_id = db.create_expense(
+                create_custom_expense(
+                    db,
                     input['payer_id'],
                     input['group_id'],
                     input['expense_name'],
                     int(input['expense_amount'] * 100),
                     input['expense_currency'],
+                    [DebtDraft(x['memberId'], int(x['total'] * 100)) for x in input['totals']],
                 )
-
-                cnt = len(input['totals'])
-                rest = int(input['expense_amount'] * 100)
-
-                for i, item in enumerate(input['totals']):
-                    db.create_debt(
-                        expense_id,
-                        item['memberId'],
-                        int(
-                            int(item['total'] * 100) if i != cnt - 1 else rest
-                        )
-                    )
-                    rest -= int(item['total'] * 100)
 
             if event['queryStringParameters']['method'] == 'expenses/create_direct':
                 input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
@@ -199,6 +185,22 @@ def handler(event, context):
                     ''',
                 }
 
+            if event['queryStringParameters']['method'] == 'expenses/optimize':
+                input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
+                group_id = input['group_id']
+                group_balances = db.get_group_balance_list(user, group_id)
+                draft = optimize_payments(group_balances, user.id)
+                for item in draft:
+                    create_custom_expense(
+                        db,
+                        item.user_id,
+                        group_id,
+                        'Optimize for ' + user.first_name + ' ' + user.last_name,
+                        item.amount,
+                        item.currency_id,
+                        item.debts,
+                    )
+                
     return {
         'statusCode': 200,
         'body': '{}',
