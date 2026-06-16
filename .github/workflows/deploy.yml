@@ -50,8 +50,8 @@ jobs:
           folder-id: 'b1g34n0j9lktsmu9ijjf'
           function-name: 'bill-split-backend'
           runtime: 'python312'
-          memory: '512Mb'
-          execution_timeout: '10'
+          memory: 512Mb
+          execution-timeout: 10
           entrypoint: 'index.handler'
           environment: |
             BOT_TOKEN=${{ secrets.BOT_TOKEN }}
