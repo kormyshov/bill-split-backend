@@ -377,7 +377,7 @@ class Database(AbstractBase):
         def insert(session):
             tx = session.transaction().begin()
 
-            with tx.execute(
+            results = tx.execute(
                 """
                     INSERT INTO `expenses` (`created_at`, `group_id`, `name`, `paid_by`, `amount`, `currency`) 
                     VALUES ("{}", {}, "{}", {}, {}, {})
@@ -392,11 +392,11 @@ class Database(AbstractBase):
                 ),
                 commit_tx=False,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
-            ) as results:
-                expense_id = results[0].rows[0].id
+            )
+            expense_id = results[0].rows[0].id
 
             for debt in expense.debts:
-                with tx.execute(
+                tx.execute(
                     """
                         INSERT INTO `debts` (`expense_id`, `user_id`, `amount`) 
                         VALUES ({}, {}, {})
@@ -407,8 +407,7 @@ class Database(AbstractBase):
                     ),
                     commit_tx=False,
                     settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
-                ) as _:
-                    pass
+                )
 
             tx.commit()
 
