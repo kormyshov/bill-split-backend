@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
+from expense_draft import ExpenseDraft
 from user_orm import UserORM
 from group_orm import GroupORM
 from expense_orm import ExpenseORM
@@ -51,11 +52,7 @@ class AbstractBase(ABC):
         pass
 
     @abstractmethod
-    def create_expense(self, user_id: int, group_id: int, name: str, amount: int, currency_id: int) -> int:
-        pass
-
-    @abstractmethod
-    def create_debt(self, expense_id: int, user_id: int, amount: int) -> None:
+    def create_payment(self, group_id: int, expense: ExpenseDraft, name: str) -> None:
         pass
 
     @abstractmethod

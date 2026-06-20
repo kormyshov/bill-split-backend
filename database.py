@@ -4,6 +4,7 @@ from typing import List
 import datetime
 
 from config import Config
+from expense_draft import ExpenseDraft
 from user_orm import UserORM
 from group_orm import GroupORM
 from expense_orm import ExpenseORM
@@ -372,9 +373,11 @@ class Database(AbstractBase):
             for e in result[0].rows
         ]
 
-    def create_expense(self, user_id: int, group_id: int, name: str, amount: int, currency_id: int) -> int:
-        def insert_expense(session):
-            return session.transaction().execute(
+    def create_payment(self, group_id: int, expense: ExpenseDraft, name: str) -> None:
+        def insert(session):
+            tx = session.transaction().begin()
+
+            with tx.execute(
                 """
                     INSERT INTO `expenses` (`created_at`, `group_id`, `name`, `paid_by`, `amount`, `currency`) 
                     VALUES ("{}", {}, "{}", {}, {}, {})
@@ -383,33 +386,33 @@ class Database(AbstractBase):
                     datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     group_id,
                     name,
-                    user_id,
-                    amount,
-                    currency_id
+                    expense.user_id,
+                    expense.amount,
+                    expense.currency_id,
                 ),
-                commit_tx=True,
+                commit_tx=False,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
-            )
+            ) as results:
+                expense_id = results[0].rows[0].id
 
-        result = self.pool.retry_operation_sync(insert_expense)
-        return result[0].rows[0].id
+            for debt in expense.debts:
+                with tx.execute(
+                    """
+                        INSERT INTO `debts` (`expense_id`, `user_id`, `amount`) 
+                        VALUES ({}, {}, {})
+                    """.format(
+                        expense_id,
+                        debt.user_id,
+                        debt.amount,
+                    ),
+                    commit_tx=False,
+                    settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
+                ) as _:
+                    pass
 
-    def create_debt(self, expense_id: int, user_id: int, amount: int) -> None:
-        def upsert(session):
-            return session.transaction().execute(
-                """
-                    INSERT INTO `debts` (`expense_id`, `user_id`, `amount`) 
-                    VALUES ({}, {}, {})
-                """.format(
-                    expense_id,
-                    user_id,
-                    amount
-                ),
-                commit_tx=True,
-                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
-            )
+            tx.commit()
 
-        self.pool.retry_operation_sync(upsert)
+        self.pool.retry_operation_sync(insert)
 
     def delete_expense(self, expense_id: int) -> None:
         def delete(session):

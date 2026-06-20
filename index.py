@@ -121,52 +121,43 @@ def handler(event, context):
 
             if event['queryStringParameters']['method'] == 'expenses/create_equally':
                 input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
-                create_equally_expense(
-                    db,
+                draft = create_equally_expense(
                     input['payer_id'],
-                    input['group_id'],
-                    input['expense_name'],
                     int(input['expense_amount'] * 100),
                     input['expense_currency'],
                     input['user_ids'],
                 )
+                db.create_payment(input['group_id'], draft, input['expense_name'])
 
             if event['queryStringParameters']['method'] == 'expenses/create_custom':
                 input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
-                create_custom_expense(
-                    db,
+                draft = create_custom_expense(
                     input['payer_id'],
-                    input['group_id'],
-                    input['expense_name'],
                     int(input['expense_amount'] * 100),
                     input['expense_currency'],
                     [DebtDraft(x['memberId'], int(x['total'] * 100)) for x in input['totals']],
                 )
+                db.create_payment(input['group_id'], draft, input['expense_name'])
 
             if event['queryStringParameters']['method'] == 'expenses/create_direct':
                 input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
                 if int(input['amount']) < 0:
-                    create_direct_expense(
-                        db,
+                    draft = create_direct_expense(
                         user.id,
                         input['user_id'],
-                        input['group_id'],
-                        user.first_name + ' ' + user.last_name,
-                        input['first_and_last_name'],
                         -int(input['amount']),
                         input['currency'],
                     )
+                    name = user.first_name + ' ' + user.last_name + ' paid ' + input['first_and_last_name']
                 else:
-                    create_direct_expense(
-                        db,
+                    draft = create_direct_expense(
                         input['user_id'],
                         user.id,
-                        input['group_id'],
-                        input['first_and_last_name'],
-                        user.first_name + ' ' + user.last_name,
                         int(input['amount']),
                         input['currency'],
                     )
+                    name = input['first_and_last_name'] + ' paid ' + user.first_name + ' ' + user.last_name
+                db.create_payment(input['group_id'], draft, name)
 
             if event['queryStringParameters']['method'] == 'expenses/delete':
                 expense_id = int(base64.b64decode(event['body']).decode('utf-8'))
@@ -191,16 +182,9 @@ def handler(event, context):
                 group_balances = db.get_group_balance_list(user, group_id)
                 draft = optimize_payments(group_balances, user.id)
                 for item in draft:
-                    create_custom_expense(
-                        db,
-                        item.user_id,
-                        group_id,
-                        'Optimize for ' + user.first_name + ' ' + user.last_name,
-                        item.amount,
-                        item.currency_id,
-                        item.debts,
-                    )
-                
+                    db.create_payment(group_id, item, 'Optimize for ' + user.first_name + ' ' + user.last_name)
+
+
     return {
         'statusCode': 200,
         'body': '{}',

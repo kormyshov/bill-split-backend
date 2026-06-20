@@ -3,6 +3,7 @@ from typing import List
 from balance_orm import BalanceORM
 from typing import NamedTuple
 from debt_draft import DebtDraft
+from expense_draft import ExpenseDraft
 
 
 class SinglePayment(NamedTuple):
@@ -10,13 +11,6 @@ class SinglePayment(NamedTuple):
     user_id_to: int
     amount: int
     currency_id: int
-
-
-class PaymentDraft(NamedTuple):
-    user_id: int
-    amount: int
-    currency_id: int
-    debts: List[DebtDraft]
 
 
 def circle_payment(
@@ -85,11 +79,11 @@ def get_single_payments(balance: List[BalanceORM], user_id: int) -> List[SingleP
                 break
     return result
 
-def group_by_payments(single_payments: List[SinglePayment]) -> List[PaymentDraft]:
+def group_by_payments(single_payments: List[SinglePayment]) -> List[ExpenseDraft]:
     single_payments.sort(key=lambda x: (x.user_id_from, x.currency_id, x.user_id_to))
     single_payments.append(SinglePayment(-1, -1, 0, -1))
 
-    result: List[PaymentDraft] = []
+    result: List[ExpenseDraft] = []
 
     cur_user_id = single_payments[0].user_id_from
     cur_currency_id = single_payments[0].currency_id
@@ -104,7 +98,7 @@ def group_by_payments(single_payments: List[SinglePayment]) -> List[PaymentDraft
             else:
                 cur_debts[-1] = DebtDraft(single_payment.user_id_to, single_payment.amount + cur_debts[-1].amount)
         else:
-            result.append(PaymentDraft(
+            result.append(ExpenseDraft(
                 cur_user_id,
                 cur_amount,
                 cur_currency_id,
@@ -117,6 +111,6 @@ def group_by_payments(single_payments: List[SinglePayment]) -> List[PaymentDraft
 
     return result
 
-def optimize_payments(balance: List[BalanceORM], user_id: int) -> List[PaymentDraft]:
+def optimize_payments(balance: List[BalanceORM], user_id: int) -> List[ExpenseDraft]:
     single_payments = get_single_payments(balance, user_id)
     return group_by_payments(single_payments)

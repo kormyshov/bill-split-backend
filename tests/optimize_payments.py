@@ -2,7 +2,8 @@ import pytest
 
 from balance_orm import BalanceORM
 from debt_draft import DebtDraft
-from utils.optimize_payments import optimize_payments, PaymentDraft
+from expense_draft import ExpenseDraft
+from utils.optimize_payments import optimize_payments
 
 
 def test_empty():
@@ -32,9 +33,9 @@ def test_one_circle():
         ],
         1
     ) == [
-        PaymentDraft(1, 123, 1, [DebtDraft(3, 123)]),
-        PaymentDraft(2, 123, 1, [DebtDraft(1, 123)]),
-        PaymentDraft(3, 123, 1, [DebtDraft(2, 123)]),
+        ExpenseDraft(1, 123, 1, [DebtDraft(3, 123)]),
+        ExpenseDraft(2, 123, 1, [DebtDraft(1, 123)]),
+        ExpenseDraft(3, 123, 1, [DebtDraft(2, 123)]),
     ]
 
 def test_different_currencies():
@@ -55,8 +56,8 @@ def test_two_circles():
         ],
         1
     ) == [
-        PaymentDraft(1, 188, 1, [DebtDraft(3, 188)]),
-        PaymentDraft(2, 123, 1, [DebtDraft(1, 123)]),
-        PaymentDraft(3, 188, 1, [DebtDraft(2, 123), DebtDraft(4, 65)]),
-        PaymentDraft(4, 65, 1, [DebtDraft(1, 65)]),
+        ExpenseDraft(1, 188, 1, [DebtDraft(3, 188)]),
+        ExpenseDraft(2, 123, 1, [DebtDraft(1, 123)]),
+        ExpenseDraft(3, 188, 1, [DebtDraft(2, 123), DebtDraft(4, 65)]),
+        ExpenseDraft(4, 65, 1, [DebtDraft(1, 65)]),
     ]
