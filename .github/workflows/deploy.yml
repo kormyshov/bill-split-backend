@@ -51,7 +51,7 @@ jobs:
           function-name: 'bill-split-backend'
           runtime: 'python312'
           memory: '512Mb'
-          execution-timeout: 10
+          execution-timeout: 60
           entrypoint: 'index.handler'
           environment: |
             BOT_TOKEN=${{ secrets.BOT_TOKEN }}
