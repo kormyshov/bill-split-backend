@@ -188,8 +188,8 @@ def handler(event, context):
 
             if event['queryStringParameters']['method'] == 'stars/create_invoice_link':
                 input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
-                stars = input['stars']
-                days = input['days']
+                stars = str(input['stars'])
+                days = str(input['days'])
                 response = requests.post(
                     'https://api.telegram.org/bot' + Config.BOT_TOKEN + '/createInvoiceLink',
                     params={
