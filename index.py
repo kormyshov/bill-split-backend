@@ -1,6 +1,8 @@
 import base64
 import json
+import requests
 
+from config import Config
 from debt_draft import DebtDraft
 from utils.optimize_payments import optimize_payments
 from utils.validates import (
@@ -184,6 +186,29 @@ def handler(event, context):
                 for item in draft:
                     db.create_payment(group_id, item, 'Optimize for ' + user.first_name + ' ' + user.last_name)
 
+            if event['queryStringParameters']['method'] == 'stars/create_invoice_link':
+                input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
+                stars = input['stars']
+                days = input['days']
+                response = requests.post(
+                    'https://api.telegram.org/bot' + Config.BOT_TOKEN + '/createInvoiceLink',
+                    params={
+                        'title': 'Buy Premium for ' + days + ' days',
+                        'description': '',
+                        'payload': str(user.id) + ' ' + days,
+                        'currency': 'XTR',
+                        'prices': ["{'label': 'Stars', 'amount': " + stars + "}"],
+                    }
+                )
+
+                return {
+                    'statusCode': 200,
+                    'body': '''
+                        {
+                            "invoice_link": ''' + response.text + '''                    
+                        }
+                    ''',
+                }
 
     return {
         'statusCode': 200,
