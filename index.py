@@ -190,14 +190,14 @@ def handler(event, context):
                 input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
                 stars = str(input['stars'])
                 days = str(input['days'])
-                response = requests.post(
+                response = requests.get(
                     'https://api.telegram.org/bot' + Config.BOT_TOKEN + '/createInvoiceLink',
                     params={
                         'title': 'Buy Premium for ' + days + ' days',
                         'description': 'Pay ' + stars + ' stars for ' + days + ' days of Premium',
                         'payload': str(user.id) + ' ' + days,
                         'currency': 'XTR',
-                        'prices': [{'label': 'Stars', 'amount': stars}],
+                        'prices': "[{'label': 'Stars', 'amount': " + stars + "}]",
                     }
                 )
 
