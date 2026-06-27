@@ -197,7 +197,7 @@ def handler(event, context):
                         'description': 'Pay ' + stars + ' stars for ' + days + ' days of Premium',
                         'payload': str(user.id) + ' ' + days,
                         'currency': 'XTR',
-                        'prices': "[{'label': 'Stars', 'amount': " + stars + "}]",
+                        'prices': json.dumps([{'label': 'Stars', 'amount': stars}]),
                     }
                 )
 
