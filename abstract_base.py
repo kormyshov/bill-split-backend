@@ -63,6 +63,10 @@ class AbstractBase(ABC):
     def get_group_balance_list(self, user: UserORM, group_id: int) -> List[BalanceORM]:
         pass
 
+    @abstractmethod
+    def paid_premium(self, user: UserORM, expired_date: str) -> None:
+        pass
+
 
 class UserDoesntExistInDB(Exception):
     pass

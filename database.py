@@ -530,3 +530,22 @@ class Database(AbstractBase):
             )
             for e in result[0].rows
         ]
+
+    def paid_premium(self, user: UserORM, expired_date: str) -> None:
+        def upsert(session):
+            return session.transaction().execute(
+                """
+                    UPSERT INTO `users` (`id`, `telegram_id`, `first_name`, `last_name`, `expired_date`) 
+                    VALUES ({}, "{}", "{}", "{}", "{}")
+                """.format(
+                    user.id,
+                    user.telegram_id,
+                    user.first_name,
+                    user.last_name,
+                    expired_date,
+                ),
+                commit_tx=True,
+                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
+            )
+
+        self.pool.retry_operation_sync(upsert)

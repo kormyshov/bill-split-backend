@@ -1,4 +1,5 @@
 import base64
+from datetime import datetime, timedelta
 import json
 import requests
 
@@ -209,6 +210,13 @@ def handler(event, context):
                         }
                     ''',
                 }
+
+            if event['queryStringParameters']['method'] == 'stars/paid_premium':
+                input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
+                days = input['days']
+                today = datetime.today().strftime('%Y-%m-%d')
+                expired_date = datetime.strptime(max(today, user.expired_date), '%Y-%m-%d') + timedelta(days=days)
+                db.paid_premium(user, expired_date.strftime('%Y-%m-%d'))
 
     return {
         'statusCode': 200,
