@@ -193,7 +193,7 @@ def handler(event, context):
                 response = requests.get(
                     'https://api.telegram.org/bot' + Config.BOT_TOKEN + '/createInvoiceLink',
                     params={
-                        'title': 'Buy Premium for ' + days + ' days',
+                        'title': 'Premium for ' + days + ' days',
                         'description': 'Pay ' + stars + ' stars for ' + days + ' days of Premium',
                         'payload': str(user.id) + ' ' + days,
                         'currency': 'XTR',
