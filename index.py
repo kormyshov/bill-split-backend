@@ -25,8 +25,8 @@ from user_orm import UserORM
 
 def handler(event, context):
 
-    print(event)
-    print(context)
+    print(event, flush=True)
+    print(context, flush=True)
 
     if event['httpMethod'] == 'GET' or event['httpMethod'] == 'POST':
         db: AbstractBase = Database()
