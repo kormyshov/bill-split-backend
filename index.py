@@ -40,6 +40,11 @@ def handler(event, context):
             )
 
             user: UserORM = db.get_user_info(event['queryStringParameters']['user_id'])
+        except KeyError:
+            return {
+                'statusCode': 200,
+                'body': '{"error": "KeyError"}',
+            }
 
         if event['queryStringParameters']['method'] == 'init_db' and validate_init_db(event['queryStringParameters']['user_id']):
             pass
