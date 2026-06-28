@@ -41,6 +41,13 @@ def handler(event, context):
 
             user: UserORM = db.get_user_info(event['queryStringParameters']['user_id'])
         except KeyError:
+            if 'pre_checkout_query' in event['body']:
+                query_id = json.loads(event['body'])['pre_checkout_query']['id']
+                return {
+                    'ok': True,
+                    'pre_checkout_query_id': query_id,
+                }
+
             return {
                 'statusCode': 200,
                 'body': '{"error": "KeyError"}',
