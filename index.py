@@ -45,17 +45,12 @@ def handler(event, context):
                 query_id = json.loads(event['body'])['pre_checkout_query']['id']
                 return {
                     'statusCode': 200,
-                    'body': '''
-                        {
-                            "ok": True,
-                            "pre_checkout_query_id": "''' + query_id + '''"
-                        }
-                    ''',
+                    'body': json.dumps({"ok": True, "pre_checkout_query_id": query_id}),
                 }
 
             return {
                 'statusCode': 200,
-                'body': '{"ok": True, "error": "KeyError"}',
+                'body': json.dumps({"ok": True, "error": "KeyError"}),
             }
 
         if event['queryStringParameters']['method'] == 'init_db' and validate_init_db(event['queryStringParameters']['user_id']):
