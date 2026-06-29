@@ -45,11 +45,13 @@ def handler(event, context):
                 query_id = json.loads(event['body'])['pre_checkout_query']['id']
                 return {
                     'statusCode': 200,
+                    'headers': {"Content-Type": "application/json"},
                     'body': json.dumps({"ok": True, "pre_checkout_query_id": query_id}),
                 }
 
             return {
                 'statusCode': 200,
+                'headers': {"Content-Type": "application/json"},
                 'body': json.dumps({"ok": True, "error": "KeyError"}),
             }
 
