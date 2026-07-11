@@ -453,7 +453,7 @@ class Database(AbstractBase):
                     INSERT INTO `debts` (`expense_id`, `user_id`, `amount`)
                     VALUES ($expense_id, $user_id, $amount)
                 """,
-                {"$expense_id": ydb.PrimitiveType.UInt64, "$user_id": ydb.PrimitiveType.UInt64, "$amount": ydb.PrimitiveType.Int64}
+                {"$expense_id": ydb.PrimitiveType.Uint64, "$user_id": ydb.PrimitiveType.Uint64, "$amount": ydb.PrimitiveType.Int64}
             )
             for debt in expense.debts:
                 tx.execute(
@@ -483,7 +483,7 @@ class Database(AbstractBase):
                     WHERE `expense_id` == $expense_id
                     ;
                 """,
-                {"$expense_id": ydb.PrimitiveType.UInt64}
+                {"$expense_id": ydb.PrimitiveType.Uint64}
             )
             return session.transaction().execute(
                 query,
