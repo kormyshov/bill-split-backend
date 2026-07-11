@@ -24,7 +24,7 @@ def create_equally(db: AbstractBase, user: UserORM, event: dict) -> None:
         input['expense_currency'],
         input['user_ids'],
     )
-    db.create_payment(input['group_id'], draft, input['expense_name'])
+    db.create_payment(int(input['group_id']), draft, input['expense_name'])
 
 
 def create_custom(db: AbstractBase, user: UserORM, event: dict) -> None:
@@ -35,7 +35,7 @@ def create_custom(db: AbstractBase, user: UserORM, event: dict) -> None:
         input['expense_currency'],
         [DebtDraft(x['memberId'], int(x['total'] * 100)) for x in input['totals']],
     )
-    db.create_payment(input['group_id'], draft, input['expense_name'])
+    db.create_payment(int(input['group_id']), draft, input['expense_name'])
 
 
 def create_direct(db: AbstractBase, user: UserORM, event: dict) -> None:
@@ -56,7 +56,7 @@ def create_direct(db: AbstractBase, user: UserORM, event: dict) -> None:
             input['currency'],
         )
         name = input['first_and_last_name'] + ' paid ' + user.first_name + ' ' + user.last_name
-    db.create_payment(input['group_id'], draft, name)
+    db.create_payment(int(input['group_id']), draft, name)
 
 
 def delete_expense(db: AbstractBase, user: UserORM, event: dict) -> None:
