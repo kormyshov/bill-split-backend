@@ -447,13 +447,13 @@ class Database(AbstractBase):
 
             query2 = ydb.DataQuery(
                 """
-                    DECLARE $expense_id AS Int64;
-                    DECLARE $user_id AS Int64;
+                    DECLARE $expense_id AS UInt64;
+                    DECLARE $user_id AS UInt64;
                     DECLARE $amount AS Int64;
                     INSERT INTO `debts` (`expense_id`, `user_id`, `amount`)
                     VALUES ($expense_id, $user_id, $amount)
                 """,
-                {"$expense_id": ydb.PrimitiveType.Int64, "$user_id": ydb.PrimitiveType.Int64, "$amount": ydb.PrimitiveType.Int64}
+                {"$expense_id": ydb.PrimitiveType.UInt64, "$user_id": ydb.PrimitiveType.UInt64, "$amount": ydb.PrimitiveType.Int64}
             )
             for debt in expense.debts:
                 tx.execute(
@@ -475,7 +475,7 @@ class Database(AbstractBase):
         def delete(session):
             query = ydb.DataQuery(
                 """
-                    DECLARE $expense_id AS Int64;
+                    DECLARE $expense_id AS UInt64;
                     DELETE FROM `expenses`
                     WHERE `id` == $expense_id
                     ;
@@ -483,7 +483,7 @@ class Database(AbstractBase):
                     WHERE `expense_id` == $expense_id
                     ;
                 """,
-                {"$expense_id": ydb.PrimitiveType.Int64}
+                {"$expense_id": ydb.PrimitiveType.UInt64}
             )
             return session.transaction().execute(
                 query,
