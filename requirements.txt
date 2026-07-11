@@ -1,4 +1,4 @@
 pytest
 six
-ydb==2.5.0
+ydb==3.29.7
 requests
