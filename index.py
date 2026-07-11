@@ -64,6 +64,13 @@ def handler(event, context):
     print(event)
     print(context)
 
+    if 'httpMethod' not in event:
+        return {
+            'statusCode': 200,
+            'headers': {"Content-Type": "application/json"},
+            'body': json.dumps({"ok": True}),
+        }
+
     if event['httpMethod'] == 'GET' or event['httpMethod'] == 'POST':
         db: AbstractBase = Database()
         try:
