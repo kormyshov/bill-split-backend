@@ -116,7 +116,7 @@ def test_get_user_info_success(db, mock_pool):
         
         query, params, _, _ = mock_pool.session.transaction_mock.executed[0]
         assert '$telegram_id' in query
-        assert params == {'$telegram_id': ('12345', ydb.PrimitiveType.Utf8)}
+        assert params == {'$telegram_id': '12345'}
 
 
 def test_get_user_info_not_found(db, mock_pool):
@@ -132,9 +132,9 @@ def test_create_user(db, mock_pool):
         query, params, _, _ = mock_pool.session.transaction_mock.executed[0]
         assert 'INSERT INTO `users`' in query
         assert params == {
-            '$telegram_id': ('12345', ydb.PrimitiveType.Utf8),
-            '$first_name': ('John', ydb.PrimitiveType.Utf8),
-            '$last_name': ('Doe', ydb.PrimitiveType.Utf8),
+            '$telegram_id': '12345',
+            '$first_name': 'John',
+            '$last_name': 'Doe',
         }
 
 
@@ -158,7 +158,7 @@ def test_get_group_list(db, mock_pool):
     
         query, params, _, _ = mock_pool.session.transaction_mock.executed[0]
         assert '$user_id' in query
-        assert params == {'$user_id': (1, ydb.PrimitiveType.Int64)}
+        assert params == {'$user_id': 1}
 
 
 def test_create_group(db, mock_pool):
@@ -174,13 +174,13 @@ def test_create_group(db, mock_pool):
         assert len(mock_pool.session.transaction_mock.executed) == 2
         query1, params1, _, _ = mock_pool.session.transaction_mock.executed[0]
         assert 'INSERT INTO `groups`' in query1
-        assert params1['$name'] == ('New Group', ydb.PrimitiveType.Utf8)
-        assert params1['$created_by'] == (1, ydb.PrimitiveType.Int64)
+        assert params1['$name'] == 'New Group'
+        assert params1['$created_by'] == 1
     
         query2, params2, _, _ = mock_pool.session.transaction_mock.executed[1]
         assert 'INSERT INTO `group_members`' in query2
-        assert params2['$group_id'] == (42, ydb.PrimitiveType.Int64)
-        assert params2['$user_id'] == (1, ydb.PrimitiveType.Int64)
+        assert params2['$group_id'] == 42
+        assert params2['$user_id'] == 1
 
 
 def test_change_group_name(db, mock_pool):
@@ -189,10 +189,10 @@ def test_change_group_name(db, mock_pool):
         query, params, _, _ = mock_pool.session.transaction_mock.executed[0]
         assert 'UPSERT INTO `groups`' in query
         assert params == {
-            '$group_id': (1, ydb.PrimitiveType.Int64),
-            '$name': ('New Name', ydb.PrimitiveType.Utf8),
-            '$created_at': ('2024-01-01 12:00:00', ydb.PrimitiveType.Utf8),
-            '$created_by': (1, ydb.PrimitiveType.Int64),
+            '$group_id': 1,
+            '$name': 'New Name',
+            '$created_at': '2024-01-01 12:00:00',
+            '$created_by': 1,
         }
 
 
@@ -212,7 +212,7 @@ def test_get_group_member_list(db, mock_pool):
     
         query, params, _, _ = mock_pool.session.transaction_mock.executed[0]
         assert '$group_id' in query
-        assert params == {'$group_id': (1, ydb.PrimitiveType.Int64)}
+        assert params == {'$group_id': 1}
 
 
 def test_join_to_group(db, mock_pool):
@@ -223,8 +223,8 @@ def test_join_to_group(db, mock_pool):
         assert '$group_token' in query
         assert '$user_id' in query
         assert params == {
-            '$group_token': ('token123', ydb.PrimitiveType.Utf8),
-            '$user_id': (1, ydb.PrimitiveType.Int64),
+            '$group_token': 'token123',
+            '$user_id': 1,
         }
 
 
@@ -235,8 +235,8 @@ def test_leave_group(db, mock_pool):
         query, params, _, _ = mock_pool.session.transaction_mock.executed[0]
         assert 'DELETE FROM `group_members`' in query
         assert params == {
-            '$group_id': (1, ydb.PrimitiveType.Int64),
-            '$user_id': (1, ydb.PrimitiveType.Int64),
+            '$group_id': 1,
+            '$user_id': 1,
         }
 
 
@@ -263,8 +263,8 @@ def test_get_group_expense_list(db, mock_pool):
         assert '$group_id' in query
         assert '$user_id' in query
         assert params == {
-            '$group_id': (1, ydb.PrimitiveType.Int64),
-            '$user_id': (1, ydb.PrimitiveType.Int64),
+            '$group_id': 1,
+            '$user_id': 1,
         }
 
 
@@ -288,7 +288,7 @@ def test_get_expense_debt_list(db, mock_pool):
     
         query, params, _, _ = mock_pool.session.transaction_mock.executed[0]
         assert '$expense_id' in query
-        assert params == {'$expense_id': (1, ydb.PrimitiveType.Int64)}
+        assert params == {'$expense_id': 1}
 
 
 def test_create_payment(db, mock_pool):
@@ -313,17 +313,17 @@ def test_create_payment(db, mock_pool):
         query1, params1, commit_tx1, _ = mock_pool.session.transaction_mock.executed[0]
         assert 'INSERT INTO `expenses`' in query1
         assert commit_tx1 is False
-        assert params1['$name'] == ('Dinner', ydb.PrimitiveType.Utf8)
-        assert params1['$paid_by'] == (1, ydb.PrimitiveType.Int64)
-        assert params1['$amount'] == (1000, ydb.PrimitiveType.Int64)
-        assert params1['$currency'] == (1, ydb.PrimitiveType.Int64)
+        assert params1['$name'] == 'Dinner'
+        assert params1['$paid_by'] == 1
+        assert params1['$amount'] == 1000
+        assert params1['$currency'] == 1
     
         query2, params2, commit_tx2, _ = mock_pool.session.transaction_mock.executed[1]
         assert 'INSERT INTO `debts`' in query2
         assert commit_tx2 is False
-        assert params2['$expense_id'] == (42, ydb.PrimitiveType.Int64)
-        assert params2['$user_id'] == (2, ydb.PrimitiveType.Int64)
-        assert params2['$amount'] == (500, ydb.PrimitiveType.Int64)
+        assert params2['$expense_id'] == 42
+        assert params2['$user_id'] == 2
+        assert params2['$amount'] == 500
 
 
 def test_delete_expense(db, mock_pool):
@@ -333,7 +333,7 @@ def test_delete_expense(db, mock_pool):
         query, params, _, _ = mock_pool.session.transaction_mock.executed[0]
         assert 'DELETE FROM `expenses`' in query
         assert 'DELETE FROM `debts`' in query
-        assert params == {'$expense_id': (1, ydb.PrimitiveType.Int64)}
+        assert params == {'$expense_id': 1}
 
 
 def test_get_group_balance_list(db, mock_pool):
@@ -358,8 +358,8 @@ def test_get_group_balance_list(db, mock_pool):
         assert '$group_id' in query
         assert '$user_id' in query
         assert params == {
-            '$group_id': (1, ydb.PrimitiveType.Int64),
-            '$user_id': (1, ydb.PrimitiveType.Int64),
+            '$group_id': 1,
+            '$user_id': 1,
         }
 
 
@@ -371,11 +371,11 @@ def test_paid_premium(db, mock_pool):
         query, params, _, _ = mock_pool.session.transaction_mock.executed[0]
         assert 'UPSERT INTO `users`' in query
         assert params == {
-            '$user_id': (1, ydb.PrimitiveType.Int64),
-            '$telegram_id': ('12345', ydb.PrimitiveType.Utf8),
-            '$first_name': ('John', ydb.PrimitiveType.Utf8),
-            '$last_name': ('Doe', ydb.PrimitiveType.Utf8),
-            '$expired_date': ('2026-01-01', ydb.PrimitiveType.Utf8),
+            '$user_id': 1,
+            '$telegram_id': '12345',
+            '$first_name': 'John',
+            '$last_name': 'Doe',
+            '$expired_date': '2026-01-01',
         }
 
 

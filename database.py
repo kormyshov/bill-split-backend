@@ -45,7 +45,7 @@ class Database(AbstractBase):
                     FROM `users`
                     WHERE `telegram_id` == $telegram_id;
                 """,
-                {"$telegram_id": (telegram_id, ydb.PrimitiveType.Utf8)},
+                {"$telegram_id": telegram_id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2),
             )
@@ -73,11 +73,7 @@ class Database(AbstractBase):
                     INSERT INTO `users` (`telegram_id`, `first_name`, `last_name`) 
                     VALUES ($telegram_id, $first_name, $last_name)
                 """,
-                {
-                    "$telegram_id": (telegram_id, ydb.PrimitiveType.Utf8),
-                    "$first_name": (first_name, ydb.PrimitiveType.Utf8),
-                    "$last_name": (last_name, ydb.PrimitiveType.Utf8),
-                },
+                {"$telegram_id": telegram_id, "$first_name": first_name, "$last_name": last_name},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
             )
@@ -109,7 +105,7 @@ class Database(AbstractBase):
                     ON `gm`.`group_id` == `gc`.`group_id`
                     WHERE `gm`.`user_id` == $user_id;
                 """,
-                {"$user_id": (user.id, ydb.PrimitiveType.Int64)},
+                {"$user_id": user.id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
             )
@@ -138,11 +134,7 @@ class Database(AbstractBase):
                     VALUES ($created_at, $created_by, $name)
                     RETURNING *
                 """,
-                {
-                    "$created_at": (now, ydb.PrimitiveType.Utf8),
-                    "$created_by": (user.id, ydb.PrimitiveType.Int64),
-                    "$name": (name, ydb.PrimitiveType.Utf8),
-                },
+                {"$created_at": now, "$created_by": user.id, "$name": name},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
             )
@@ -155,10 +147,7 @@ class Database(AbstractBase):
                     INSERT INTO `group_members` (`group_id`, `user_id`) 
                     VALUES ($group_id, $user_id)
                 """,
-                {
-                    "$group_id": (result[0].rows[0].id, ydb.PrimitiveType.Int64),
-                    "$user_id": (user.id, ydb.PrimitiveType.Int64),
-                },
+                {"$group_id": result[0].rows[0].id, "$user_id": user.id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
             )
@@ -177,12 +166,7 @@ class Database(AbstractBase):
                     UPSERT INTO `groups` (`id`, `name`, `created_at`, `created_by`) 
                     VALUES ($group_id, $name, $created_at, $created_by)
                 """,
-                {
-                    "$group_id": (group_id, ydb.PrimitiveType.Int64),
-                    "$name": (name, ydb.PrimitiveType.Utf8),
-                    "$created_at": (created_at, ydb.PrimitiveType.Utf8),
-                    "$created_by": (created_by, ydb.PrimitiveType.Int64),
-                },
+                {"$group_id": group_id, "$name": name, "$created_at": created_at, "$created_by": created_by},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
             )
@@ -204,7 +188,7 @@ class Database(AbstractBase):
                     ON `gm`.`user_id` == `u`.`id`
                     WHERE `gm`.`group_id` == $group_id;
                 """,
-                {"$group_id": (group_id, ydb.PrimitiveType.Int64)},
+                {"$group_id": group_id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
             )
@@ -246,10 +230,7 @@ class Database(AbstractBase):
                         $user_id AS `user_id`
                     ;
                 """,
-                {
-                    "$group_token": (group_token, ydb.PrimitiveType.Utf8),
-                    "$user_id": (user.id, ydb.PrimitiveType.Int64),
-                },
+                {"$group_token": group_token, "$user_id": user.id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
             )
@@ -267,10 +248,7 @@ class Database(AbstractBase):
                         `group_id` == $group_id AND
                         `user_id` == $user_id
                 """,
-                {
-                    "$group_id": (group_id, ydb.PrimitiveType.Int64),
-                    "$user_id": (user.id, ydb.PrimitiveType.Int64),
-                },
+                {"$group_id": group_id, "$user_id": user.id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
             )
@@ -330,10 +308,7 @@ class Database(AbstractBase):
                     USING (`id`)
                     ;
                 """,
-                {
-                    "$group_id": (group_id, ydb.PrimitiveType.Int64),
-                    "$user_id": (user.id, ydb.PrimitiveType.Int64),
-                },
+                {"$group_id": group_id, "$user_id": user.id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
             )
@@ -377,7 +352,7 @@ class Database(AbstractBase):
                     ON `d`.`user_id` == `uu`.`id`
                     WHERE `e`.`id` == $expense_id;
                 """,
-                {"$expense_id": (expense_id, ydb.PrimitiveType.Int64)},
+                {"$expense_id": expense_id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
             )
@@ -414,12 +389,12 @@ class Database(AbstractBase):
                     RETURNING *
                 """,
                 {
-                    "$created_at": (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), ydb.PrimitiveType.Utf8),
-                    "$group_id": (group_id, ydb.PrimitiveType.Int64),
-                    "$name": (name, ydb.PrimitiveType.Utf8),
-                    "$paid_by": (expense.user_id, ydb.PrimitiveType.Int64),
-                    "$amount": (expense.amount, ydb.PrimitiveType.Int64),
-                    "$currency": (expense.currency_id, ydb.PrimitiveType.Int64),
+                    "$created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "$group_id": group_id,
+                    "$name": name,
+                    "$paid_by": expense.user_id,
+                    "$amount": expense.amount,
+                    "$currency": expense.currency_id,
                 },
                 commit_tx=False,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
@@ -436,9 +411,9 @@ class Database(AbstractBase):
                         VALUES ($expense_id, $user_id, $amount)
                     """,
                     {
-                        "$expense_id": (expense_id, ydb.PrimitiveType.Int64),
-                        "$user_id": (debt.user_id, ydb.PrimitiveType.Int64),
-                        "$amount": (debt.amount, ydb.PrimitiveType.Int64),
+                        "$expense_id": expense_id,
+                        "$user_id": debt.user_id,
+                        "$amount": debt.amount,
                     },
                     commit_tx=False,
                     settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
@@ -460,7 +435,7 @@ class Database(AbstractBase):
                     WHERE `expense_id` == $expense_id
                     ;
                 """,
-                {"$expense_id": (expense_id, ydb.PrimitiveType.Int64)},
+                {"$expense_id": expense_id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
             )
@@ -545,10 +520,7 @@ class Database(AbstractBase):
                     ON `t`.`user_id` == `u`.`id`
                     ;
                 """,
-                {
-                    "$group_id": (group_id, ydb.PrimitiveType.Int64),
-                    "$user_id": (user.id, ydb.PrimitiveType.Int64),
-                },
+                {"$group_id": group_id, "$user_id": user.id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
             )
@@ -578,11 +550,11 @@ class Database(AbstractBase):
                     VALUES ($user_id, $telegram_id, $first_name, $last_name, $expired_date)
                 """,
                 {
-                    "$user_id": (user.id, ydb.PrimitiveType.Int64),
-                    "$telegram_id": (user.telegram_id, ydb.PrimitiveType.Utf8),
-                    "$first_name": (user.first_name, ydb.PrimitiveType.Utf8),
-                    "$last_name": (user.last_name, ydb.PrimitiveType.Utf8),
-                    "$expired_date": (expired_date, ydb.PrimitiveType.Utf8),
+                    "$user_id": user.id,
+                    "$telegram_id": user.telegram_id,
+                    "$first_name": user.first_name,
+                    "$last_name": user.last_name,
+                    "$expired_date": expired_date,
                 },
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
