@@ -362,3 +362,38 @@ def test_all_queries_use_parameters_not_format(db):
     assert '.format(' not in source
     assert '$' in source  # has parameter placeholders
     assert 'parameters=' not in source  # uses positional dict not keyword
+
+
+def test_all_parameterized_queries_have_declare(db):
+    """Ensure every query using $params has DECLARE statements."""
+    import inspect
+    import re
+    
+    source = inspect.getsource(Database)
+    
+    # Find all execute() calls with their query strings
+    # Pattern: execute(""" ... """, {params})
+    execute_calls = re.findall(
+        r'execute\(\s*("""[\s\S]*?""")\s*,\s*\{[^}]+\}',
+        source
+    )
+    
+    assert len(execute_calls) > 0, "No execute calls found"
+    
+    for query in execute_calls:
+        # Extract parameter names used in query
+        params_in_query = set(re.findall(r'\$(\w+)', query))
+        if not params_in_query:
+            continue  # Query without parameters is fine
+        
+        # Parameters that are assigned within the query (e.g., `$var = SELECT...`) 
+        # don't need DECLARE
+        assigned_vars = set(re.findall(r'\$(\w+)\s*=', query))
+        
+        # Check for DECLARE statements for each parameter (excluding assigned vars)
+        for param in params_in_query:
+            if param in assigned_vars:
+                continue
+            declare_pattern = rf'DECLARE\s+\${param}\s+AS\s+\w+'
+            assert re.search(declare_pattern, query), \
+                f"Missing DECLARE for ${param} in query:\n{query[:200]}..."

@@ -35,6 +35,7 @@ class Database(AbstractBase):
         def select(session):
             return session.transaction().execute(
                 """
+                    DECLARE $telegram_id AS Utf8;
                     SELECT
                         `id`,
                         `telegram_id`,
@@ -66,6 +67,9 @@ class Database(AbstractBase):
         def upsert(session):
             return session.transaction().execute(
                 """
+                    DECLARE $telegram_id AS Utf8;
+                    DECLARE $first_name AS Utf8;
+                    DECLARE $last_name AS Utf8;
                     INSERT INTO `users` (`telegram_id`, `first_name`, `last_name`) 
                     VALUES ($telegram_id, $first_name, $last_name)
                 """,
@@ -80,6 +84,7 @@ class Database(AbstractBase):
         def select(session):
             return session.transaction().execute(
                 """
+                    DECLARE $user_id AS Int64;
                     SELECT
                         `g`.`id` AS `id`,
                         `created_at`,
@@ -122,6 +127,9 @@ class Database(AbstractBase):
         def insert_group(session):
             return session.transaction().execute(
                 """
+                    DECLARE $created_at AS Utf8;
+                    DECLARE $created_by AS Int64;
+                    DECLARE $name AS Utf8;
                     INSERT INTO `groups` (`created_at`, `created_by`, `name`) 
                     VALUES ($created_at, $created_by, $name)
                     RETURNING *
@@ -134,6 +142,8 @@ class Database(AbstractBase):
         def insert_member(session):
             return session.transaction().execute(
                 """
+                    DECLARE $group_id AS Int64;
+                    DECLARE $user_id AS Int64;
                     INSERT INTO `group_members` (`group_id`, `user_id`) 
                     VALUES ($group_id, $user_id)
                 """,
@@ -149,6 +159,10 @@ class Database(AbstractBase):
         def upsert(session):
             return session.transaction().execute(
                 """
+                    DECLARE $group_id AS Int64;
+                    DECLARE $name AS Utf8;
+                    DECLARE $created_at AS Utf8;
+                    DECLARE $created_by AS Int64;
                     UPSERT INTO `groups` (`id`, `name`, `created_at`, `created_by`) 
                     VALUES ($group_id, $name, $created_at, $created_by)
                 """,
@@ -163,6 +177,7 @@ class Database(AbstractBase):
         def select(session):
             return session.transaction().execute(
                 """
+                    DECLARE $group_id AS Int64;
                     SELECT
                         `u`.`id` AS `id`,
                         `telegram_id`,
@@ -193,6 +208,8 @@ class Database(AbstractBase):
         def insert_member(session):
             return session.transaction().execute(
                 """
+                    DECLARE $group_token AS Utf8;
+                    DECLARE $user_id AS Int64;
                     $group_id = 
                     SELECT
                         `id`,
@@ -224,6 +241,8 @@ class Database(AbstractBase):
         def delete_member(session):
             return session.transaction().execute(
                 """
+                    DECLARE $group_id AS Int64;
+                    DECLARE $user_id AS Int64;
                     DELETE FROM `group_members`
                     WHERE
                         `group_id` == $group_id AND
@@ -240,6 +259,8 @@ class Database(AbstractBase):
         def select(session):
             return session.transaction().execute(
                 """
+                    DECLARE $group_id AS Int64;
+                    DECLARE $user_id AS Int64;
                     $input =
                     SELECT
                         `id`,
@@ -310,6 +331,7 @@ class Database(AbstractBase):
         def select(session):
             return session.transaction().execute(
                 """
+                    DECLARE $expense_id AS Int64;
                     SELECT
                         `d`.`id` AS `id`,
                         `e`.`name` AS `expense_name`,
@@ -356,6 +378,12 @@ class Database(AbstractBase):
 
             results = tx.execute(
                 """
+                    DECLARE $created_at AS Utf8;
+                    DECLARE $group_id AS Int64;
+                    DECLARE $name AS Utf8;
+                    DECLARE $paid_by AS Int64;
+                    DECLARE $amount AS Int64;
+                    DECLARE $currency AS Int64;
                     INSERT INTO `expenses` (`created_at`, `group_id`, `name`, `paid_by`, `amount`, `currency`) 
                     VALUES ($created_at, $group_id, $name, $paid_by, $amount, $currency)
                     RETURNING *
@@ -376,6 +404,9 @@ class Database(AbstractBase):
             for debt in expense.debts:
                 tx.execute(
                     """
+                        DECLARE $expense_id AS Int64;
+                        DECLARE $user_id AS Int64;
+                        DECLARE $amount AS Int64;
                         INSERT INTO `debts` (`expense_id`, `user_id`, `amount`) 
                         VALUES ($expense_id, $user_id, $amount)
                     """,
@@ -396,6 +427,7 @@ class Database(AbstractBase):
         def delete(session):
             return session.transaction().execute(
                 """
+                    DECLARE $expense_id AS Int64;
                     DELETE FROM `expenses`
                     WHERE `id` == $expense_id
                     ;
@@ -414,6 +446,8 @@ class Database(AbstractBase):
         def select(session):
             return session.transaction().execute(
                 """
+                    DECLARE $group_id AS Int64;
+                    DECLARE $user_id AS Int64;
                     $input =
                     SELECT
                         `id`,
@@ -507,6 +541,11 @@ class Database(AbstractBase):
         def upsert(session):
             return session.transaction().execute(
                 """
+                    DECLARE $user_id AS Int64;
+                    DECLARE $telegram_id AS Utf8;
+                    DECLARE $first_name AS Utf8;
+                    DECLARE $last_name AS Utf8;
+                    DECLARE $expired_date AS Utf8;
                     UPSERT INTO `users` (`id`, `telegram_id`, `first_name`, `last_name`, `expired_date`) 
                     VALUES ($user_id, $telegram_id, $first_name, $last_name, $expired_date)
                 """,
