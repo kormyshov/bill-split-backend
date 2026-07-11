@@ -195,7 +195,7 @@ def handler(event, context):
 
             if event['queryStringParameters']['method'] == 'expenses/optimize':
                 input = json.loads(base64.b64decode(event['body']).decode('utf-8'))
-                group_id = input['group_id']
+                group_id = int(input['group_id'])
                 group_balances = db.get_group_balance_list(user, group_id)
                 draft = optimize_payments(group_balances, user.id)
                 for item in draft:
