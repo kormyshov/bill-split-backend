@@ -1,3 +1,5 @@
+import random
+
 import pytest
 
 from balance_orm import BalanceORM
@@ -61,3 +63,51 @@ def test_two_circles():
         ExpenseDraft(3, 188, 1, [DebtDraft(2, 123), DebtDraft(4, 65)]),
         ExpenseDraft(4, 65, 1, [DebtDraft(1, 65)]),
     ]
+
+
+def check_expense_consistency(expenses):
+    for exp in expenses:
+        assert exp.amount > 0
+        assert exp.amount == sum(d.amount for d in exp.debts)
+        for d in exp.debts:
+            assert d.amount > 0
+
+
+def test_random_large():
+    random.seed(42)
+
+    currencies = ['USD', 'EUR', 'RUB']
+    user_ids = list(range(10, 50))
+    num_balances = 1000
+
+    for _ in range(20):
+        balances = []
+        for _ in range(num_balances):
+            uid = random.choice(user_ids)
+            curr = random.randint(1, len(currencies))
+            amount = random.randint(-500, 500)
+            if amount == 0:
+                amount = 1
+            sym = currencies[curr - 1]
+            name = f'U{uid}'
+            balances.append(BalanceORM(uid, curr, amount, sym, name))
+
+        result = optimize_payments(balances, 1)
+        check_expense_consistency(result)
+
+
+def test_random_balanced():
+    random.seed(123)
+
+    for _ in range(20):
+        balances = []
+        for uid in range(10, 30):
+            curr = random.randint(1, 3)
+            amount = random.randint(1, 100)
+            if random.random() < 0.5:
+                amount = -amount
+            sym = ['USD', 'EUR', 'RUB'][curr - 1]
+            balances.append(BalanceORM(uid, curr, amount, sym, f'U{uid}'))
+
+        result = optimize_payments(balances, 5)
+        check_expense_consistency(result)

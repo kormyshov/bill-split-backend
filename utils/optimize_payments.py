@@ -1,4 +1,6 @@
 import copy
+import heapq
+from collections import defaultdict
 from typing import List
 from balance_orm import BalanceORM
 from typing import NamedTuple
@@ -41,42 +43,43 @@ def shift_payment(
 def get_single_payments(balance: List[BalanceORM], user_id: int) -> List[SinglePayment]:
     result = []
 
-    is_optimize = True
-    while is_optimize:
-        is_optimize = False
-        balance.sort(key=lambda x: abs(x.amount))
+    pos_heaps: dict[int, list] = defaultdict(list)
+    neg_heaps: dict[int, list] = defaultdict(list)
 
-        for i in range(len(balance)):
-            for j in range(i + 1, len(balance)):
-                if balance[i].amount * balance[j].amount < 0 and balance[i].currency == balance[j].currency:
-                    result.extend(
-                        shift_payment(
-                            balance[i].amount,
-                            balance[i].currency,
-                            user_id,
-                            balance[i].user_id,
-                            balance[j].user_id
-                        )
-                    )
-                    balance[j] = BalanceORM(
-                        balance[j].user_id,
-                        balance[j].currency,
-                        balance[j].amount + balance[i].amount,
-                        balance[j].currency_symbol,
-                        balance[j].first_and_last_name,
-                    )
-                    balance[i] = BalanceORM(
-                        balance[i].user_id,
-                        balance[i].currency,
-                        0,
-                        balance[i].currency_symbol,
-                        balance[i].first_and_last_name,
-                    )
-                    is_optimize = True
-                    break
+    for b in balance:
+        if b.amount == 0:
+            continue
+        item = (abs(b.amount), b.user_id, b.amount, b.currency_symbol, b.first_and_last_name)
+        if b.amount > 0:
+            heapq.heappush(pos_heaps[b.currency], item)
+        else:
+            heapq.heappush(neg_heaps[b.currency], item)
 
-            if is_optimize:
-                break
+    for currency in pos_heaps:
+        neg_heap = neg_heaps.get(currency)
+        if not neg_heap:
+            continue
+        pos_heap = pos_heaps[currency]
+
+        while pos_heap and neg_heap:
+            pos = heapq.heappop(pos_heap)
+            neg = heapq.heappop(neg_heap)
+
+            if pos[2] >= -neg[2]:
+                result.extend(
+                    shift_payment(neg[2], currency, user_id, neg[1], pos[1])
+                )
+                remainder = pos[2] + neg[2]
+                if remainder > 0:
+                    heapq.heappush(pos_heap, (remainder, pos[1], remainder, pos[3], pos[4]))
+            else:
+                result.extend(
+                    shift_payment(pos[2], currency, user_id, pos[1], neg[1])
+                )
+                remainder = pos[2] + neg[2]
+                if remainder < 0:
+                    heapq.heappush(neg_heap, (-remainder, neg[1], remainder, neg[3], neg[4]))
+
     return result
 
 def group_by_payments(single_payments: List[SinglePayment]) -> List[ExpenseDraft]:
