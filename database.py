@@ -33,7 +33,7 @@ class Database(AbstractBase):
 
     def get_user_info(self, telegram_id: str) -> UserORM:
         def select(session):
-            return session.transaction().execute(
+            query = ydb.DataQuery(
                 """
                     DECLARE $telegram_id AS Utf8;
                     SELECT
@@ -45,6 +45,10 @@ class Database(AbstractBase):
                     FROM `users`
                     WHERE `telegram_id` == $telegram_id;
                 """,
+                {"$telegram_id": ydb.PrimitiveType.Utf8}
+            )
+            return session.transaction().execute(
+                query,
                 {"$telegram_id": telegram_id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2),
@@ -65,14 +69,18 @@ class Database(AbstractBase):
 
     def create_user(self, telegram_id: str, first_name: str, last_name: str) -> None:
         def upsert(session):
-            return session.transaction().execute(
+            query = ydb.DataQuery(
                 """
                     DECLARE $telegram_id AS Utf8;
                     DECLARE $first_name AS Utf8;
                     DECLARE $last_name AS Utf8;
-                    INSERT INTO `users` (`telegram_id`, `first_name`, `last_name`) 
+                    INSERT INTO `users` (`telegram_id`, `first_name`, `last_name`)
                     VALUES ($telegram_id, $first_name, $last_name)
                 """,
+                {"$telegram_id": ydb.PrimitiveType.Utf8, "$first_name": ydb.PrimitiveType.Utf8, "$last_name": ydb.PrimitiveType.Utf8}
+            )
+            return session.transaction().execute(
+                query,
                 {"$telegram_id": telegram_id, "$first_name": first_name, "$last_name": last_name},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
@@ -82,7 +90,7 @@ class Database(AbstractBase):
 
     def get_group_list(self, user: UserORM) -> List[GroupORM]:
         def select(session):
-            return session.transaction().execute(
+            query = ydb.DataQuery(
                 """
                     DECLARE $user_id AS Int64;
                     SELECT
@@ -105,6 +113,10 @@ class Database(AbstractBase):
                     ON `gm`.`group_id` == `gc`.`group_id`
                     WHERE `gm`.`user_id` == $user_id;
                 """,
+                {"$user_id": ydb.PrimitiveType.Int64}
+            )
+            return session.transaction().execute(
+                query,
                 {"$user_id": user.id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
@@ -125,28 +137,36 @@ class Database(AbstractBase):
     def create_group(self, user: UserORM, name: str) -> None:
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         def insert_group(session):
-            return session.transaction().execute(
+            query = ydb.DataQuery(
                 """
                     DECLARE $created_at AS Utf8;
                     DECLARE $created_by AS Int64;
                     DECLARE $name AS Utf8;
-                    INSERT INTO `groups` (`created_at`, `created_by`, `name`) 
+                    INSERT INTO `groups` (`created_at`, `created_by`, `name`)
                     VALUES ($created_at, $created_by, $name)
                     RETURNING *
                 """,
+                {"$created_at": ydb.PrimitiveType.Utf8, "$created_by": ydb.PrimitiveType.Int64, "$name": ydb.PrimitiveType.Utf8}
+            )
+            return session.transaction().execute(
+                query,
                 {"$created_at": now, "$created_by": user.id, "$name": name},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
             )
 
         def insert_member(session):
-            return session.transaction().execute(
+            query = ydb.DataQuery(
                 """
                     DECLARE $group_id AS Int64;
                     DECLARE $user_id AS Int64;
-                    INSERT INTO `group_members` (`group_id`, `user_id`) 
+                    INSERT INTO `group_members` (`group_id`, `user_id`)
                     VALUES ($group_id, $user_id)
                 """,
+                {"$group_id": ydb.PrimitiveType.Int64, "$user_id": ydb.PrimitiveType.Int64}
+            )
+            return session.transaction().execute(
+                query,
                 {"$group_id": result[0].rows[0].id, "$user_id": user.id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
@@ -157,15 +177,19 @@ class Database(AbstractBase):
 
     def change_group_name(self, group_id: int, name: str, created_at: str, created_by: int) -> None:
         def upsert(session):
-            return session.transaction().execute(
+            query = ydb.DataQuery(
                 """
                     DECLARE $group_id AS Int64;
                     DECLARE $name AS Utf8;
                     DECLARE $created_at AS Utf8;
                     DECLARE $created_by AS Int64;
-                    UPSERT INTO `groups` (`id`, `name`, `created_at`, `created_by`) 
+                    UPSERT INTO `groups` (`id`, `name`, `created_at`, `created_by`)
                     VALUES ($group_id, $name, $created_at, $created_by)
                 """,
+                {"$group_id": ydb.PrimitiveType.Int64, "$name": ydb.PrimitiveType.Utf8, "$created_at": ydb.PrimitiveType.Utf8, "$created_by": ydb.PrimitiveType.Int64}
+            )
+            return session.transaction().execute(
+                query,
                 {"$group_id": group_id, "$name": name, "$created_at": created_at, "$created_by": created_by},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
@@ -175,7 +199,7 @@ class Database(AbstractBase):
 
     def get_group_member_list(self, group_id: int) -> List[UserORM]:
         def select(session):
-            return session.transaction().execute(
+            query = ydb.DataQuery(
                 """
                     DECLARE $group_id AS Int64;
                     SELECT
@@ -188,6 +212,10 @@ class Database(AbstractBase):
                     ON `gm`.`user_id` == `u`.`id`
                     WHERE `gm`.`group_id` == $group_id;
                 """,
+                {"$group_id": ydb.PrimitiveType.Int64}
+            )
+            return session.transaction().execute(
+                query,
                 {"$group_id": group_id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
@@ -206,11 +234,11 @@ class Database(AbstractBase):
 
     def join_to_group(self, user: UserORM, group_token: str) -> None:
         def insert_member(session):
-            return session.transaction().execute(
+            query = ydb.DataQuery(
                 """
                     DECLARE $group_token AS Utf8;
                     DECLARE $user_id AS Int64;
-                    $group_id = 
+                    $group_id =
                     SELECT
                         `id`,
                     FROM `groups`
@@ -230,6 +258,10 @@ class Database(AbstractBase):
                         $user_id AS `user_id`
                     ;
                 """,
+                {"$group_token": ydb.PrimitiveType.Utf8, "$user_id": ydb.PrimitiveType.Int64}
+            )
+            return session.transaction().execute(
+                query,
                 {"$group_token": group_token, "$user_id": user.id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
@@ -239,7 +271,7 @@ class Database(AbstractBase):
 
     def leave_group(self, user: UserORM, group_id: int) -> None:
         def delete_member(session):
-            return session.transaction().execute(
+            query = ydb.DataQuery(
                 """
                     DECLARE $group_id AS Int64;
                     DECLARE $user_id AS Int64;
@@ -248,6 +280,10 @@ class Database(AbstractBase):
                         `group_id` == $group_id AND
                         `user_id` == $user_id
                 """,
+                {"$group_id": ydb.PrimitiveType.Int64, "$user_id": ydb.PrimitiveType.Int64}
+            )
+            return session.transaction().execute(
+                query,
                 {"$group_id": group_id, "$user_id": user.id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
@@ -257,7 +293,7 @@ class Database(AbstractBase):
 
     def get_group_expense_list(self, user: UserORM, group_id: int) -> List[ExpenseORM]:
         def select(session):
-            return session.transaction().execute(
+            query = ydb.DataQuery(
                 """
                     DECLARE $group_id AS Int64;
                     DECLARE $user_id AS Int64;
@@ -308,6 +344,10 @@ class Database(AbstractBase):
                     USING (`id`)
                     ;
                 """,
+                {"$group_id": ydb.PrimitiveType.Int64, "$user_id": ydb.PrimitiveType.Int64}
+            )
+            return session.transaction().execute(
+                query,
                 {"$group_id": group_id, "$user_id": user.id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
@@ -329,7 +369,7 @@ class Database(AbstractBase):
 
     def get_expense_debt_list(self, expense_id: int) -> List[DebtORM]:
         def select(session):
-            return session.transaction().execute(
+            query = ydb.DataQuery(
                 """
                     DECLARE $expense_id AS Int64;
                     SELECT
@@ -352,6 +392,10 @@ class Database(AbstractBase):
                     ON `d`.`user_id` == `uu`.`id`
                     WHERE `e`.`id` == $expense_id;
                 """,
+                {"$expense_id": ydb.PrimitiveType.Int64}
+            )
+            return session.transaction().execute(
+                query,
                 {"$expense_id": expense_id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
@@ -376,7 +420,7 @@ class Database(AbstractBase):
         def insert(session):
             tx = session.transaction().begin()
 
-            results = tx.execute(
+            query1 = ydb.DataQuery(
                 """
                     DECLARE $created_at AS Utf8;
                     DECLARE $group_id AS Int64;
@@ -384,10 +428,14 @@ class Database(AbstractBase):
                     DECLARE $paid_by AS Int64;
                     DECLARE $amount AS Int64;
                     DECLARE $currency AS Int64;
-                    INSERT INTO `expenses` (`created_at`, `group_id`, `name`, `paid_by`, `amount`, `currency`) 
+                    INSERT INTO `expenses` (`created_at`, `group_id`, `name`, `paid_by`, `amount`, `currency`)
                     VALUES ($created_at, $group_id, $name, $paid_by, $amount, $currency)
                     RETURNING *
                 """,
+                {"$created_at": ydb.PrimitiveType.Utf8, "$group_id": ydb.PrimitiveType.Int64, "$name": ydb.PrimitiveType.Utf8, "$paid_by": ydb.PrimitiveType.Int64, "$amount": ydb.PrimitiveType.Int64, "$currency": ydb.PrimitiveType.Int64}
+            )
+            results = tx.execute(
+                query1,
                 {
                     "$created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "$group_id": group_id,
@@ -401,15 +449,19 @@ class Database(AbstractBase):
             )
             expense_id = results[0].rows[0].id
 
+            query2 = ydb.DataQuery(
+                """
+                    DECLARE $expense_id AS Int64;
+                    DECLARE $user_id AS Int64;
+                    DECLARE $amount AS Int64;
+                    INSERT INTO `debts` (`expense_id`, `user_id`, `amount`)
+                    VALUES ($expense_id, $user_id, $amount)
+                """,
+                {"$expense_id": ydb.PrimitiveType.Int64, "$user_id": ydb.PrimitiveType.Int64, "$amount": ydb.PrimitiveType.Int64}
+            )
             for debt in expense.debts:
                 tx.execute(
-                    """
-                        DECLARE $expense_id AS Int64;
-                        DECLARE $user_id AS Int64;
-                        DECLARE $amount AS Int64;
-                        INSERT INTO `debts` (`expense_id`, `user_id`, `amount`) 
-                        VALUES ($expense_id, $user_id, $amount)
-                    """,
+                    query2,
                     {
                         "$expense_id": expense_id,
                         "$user_id": debt.user_id,
@@ -425,7 +477,7 @@ class Database(AbstractBase):
 
     def delete_expense(self, expense_id: int) -> None:
         def delete(session):
-            return session.transaction().execute(
+            query = ydb.DataQuery(
                 """
                     DECLARE $expense_id AS Int64;
                     DELETE FROM `expenses`
@@ -435,6 +487,10 @@ class Database(AbstractBase):
                     WHERE `expense_id` == $expense_id
                     ;
                 """,
+                {"$expense_id": ydb.PrimitiveType.Int64}
+            )
+            return session.transaction().execute(
+                query,
                 {"$expense_id": expense_id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
@@ -444,7 +500,7 @@ class Database(AbstractBase):
 
     def get_group_balance_list(self, user: UserORM, group_id: int) -> List[BalanceORM]:
         def select(session):
-            return session.transaction().execute(
+            query = ydb.DataQuery(
                 """
                     DECLARE $group_id AS Int64;
                     DECLARE $user_id AS Int64;
@@ -457,7 +513,7 @@ class Database(AbstractBase):
                     WHERE `group_id` == $group_id
                     ;
 
-                    $from_ = 
+                    $from_ =
                     SELECT
                         *
                     FROM $input
@@ -520,6 +576,10 @@ class Database(AbstractBase):
                     ON `t`.`user_id` == `u`.`id`
                     ;
                 """,
+                {"$group_id": ydb.PrimitiveType.Int64, "$user_id": ydb.PrimitiveType.Int64}
+            )
+            return session.transaction().execute(
+                query,
                 {"$group_id": group_id, "$user_id": user.id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
@@ -539,16 +599,20 @@ class Database(AbstractBase):
 
     def paid_premium(self, user: UserORM, expired_date: str) -> None:
         def upsert(session):
-            return session.transaction().execute(
+            query = ydb.DataQuery(
                 """
                     DECLARE $user_id AS Int64;
                     DECLARE $telegram_id AS Utf8;
                     DECLARE $first_name AS Utf8;
                     DECLARE $last_name AS Utf8;
                     DECLARE $expired_date AS Utf8;
-                    UPSERT INTO `users` (`id`, `telegram_id`, `first_name`, `last_name`, `expired_date`) 
+                    UPSERT INTO `users` (`id`, `telegram_id`, `first_name`, `last_name`, `expired_date`)
                     VALUES ($user_id, $telegram_id, $first_name, $last_name, $expired_date)
                 """,
+                {"$user_id": ydb.PrimitiveType.Int64, "$telegram_id": ydb.PrimitiveType.Utf8, "$first_name": ydb.PrimitiveType.Utf8, "$last_name": ydb.PrimitiveType.Utf8, "$expired_date": ydb.PrimitiveType.Utf8}
+            )
+            return session.transaction().execute(
+                query,
                 {
                     "$user_id": user.id,
                     "$telegram_id": user.telegram_id,
