@@ -136,44 +136,40 @@ class Database(AbstractBase):
 
     def create_group(self, user: UserORM, name: str) -> None:
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        def insert_group(session):
-            query = ydb.DataQuery(
-                """
-                    DECLARE $created_at AS Utf8;
-                    DECLARE $created_by AS Int64;
-                    DECLARE $name AS Utf8;
-                    INSERT INTO `groups` (`created_at`, `created_by`, `name`)
-                    VALUES ($created_at, $created_by, $name)
-                    RETURNING *
-                """,
-                {"$created_at": ydb.PrimitiveType.Utf8, "$created_by": ydb.PrimitiveType.Int64, "$name": ydb.PrimitiveType.Utf8}
-            )
-            return session.transaction().execute(
-                query,
+        def create(session):
+            tx = session.transaction()
+            result = tx.execute(
+                ydb.DataQuery(
+                    """
+                        DECLARE $created_at AS Utf8;
+                        DECLARE $created_by AS Int64;
+                        DECLARE $name AS Utf8;
+                        INSERT INTO `groups` (`created_at`, `created_by`, `name`)
+                        VALUES ($created_at, $created_by, $name)
+                        RETURNING *
+                    """,
+                    {"$created_at": ydb.PrimitiveType.Utf8, "$created_by": ydb.PrimitiveType.Int64, "$name": ydb.PrimitiveType.Utf8}
+                ),
                 {"$created_at": now, "$created_by": user.id, "$name": name},
-                commit_tx=True,
+                commit_tx=False,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
             )
-
-        def insert_member(session):
-            query = ydb.DataQuery(
-                """
-                    DECLARE $group_id AS Int64;
-                    DECLARE $user_id AS Int64;
-                    INSERT INTO `group_members` (`group_id`, `user_id`)
-                    VALUES ($group_id, $user_id)
-                """,
-                {"$group_id": ydb.PrimitiveType.Int64, "$user_id": ydb.PrimitiveType.Int64}
-            )
-            return session.transaction().execute(
-                query,
+            tx.execute(
+                ydb.DataQuery(
+                    """
+                        DECLARE $group_id AS Int64;
+                        DECLARE $user_id AS Int64;
+                        INSERT INTO `group_members` (`group_id`, `user_id`)
+                        VALUES ($group_id, $user_id)
+                    """,
+                    {"$group_id": ydb.PrimitiveType.Int64, "$user_id": ydb.PrimitiveType.Int64}
+                ),
                 {"$group_id": result[0].rows[0].id, "$user_id": user.id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
             )
 
-        result = self.pool.retry_operation_sync(insert_group)
-        self.pool.retry_operation_sync(insert_member)
+        self.pool.retry_operation_sync(create)
 
     def change_group_name(self, group_id: int, name: str, created_at: str, created_by: int) -> None:
         def upsert(session):
