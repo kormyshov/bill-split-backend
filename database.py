@@ -621,3 +621,68 @@ class Database(AbstractBase):
             )
 
         self.pool.retry_operation_sync(upsert)
+
+    def upsert_currency(self, symbol: str, name: str) -> int:
+        def upsert(session):
+            tx = session.transaction()
+            result = tx.execute(
+                ydb.DataQuery(
+                    """
+                        DECLARE $symbol AS Utf8;
+                        SELECT `id`
+                        FROM `currencies`
+                        WHERE `symbol` == $symbol
+                    """,
+                    {"$symbol": ydb.PrimitiveType.Utf8}
+                ),
+                {"$symbol": symbol},
+                commit_tx=False,
+                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
+            )
+
+            if result[0].rows:
+                return result[0].rows[0].id
+
+            insert_result = tx.execute(
+                ydb.DataQuery(
+                    """
+                        DECLARE $symbol AS Utf8;
+                        DECLARE $name AS Utf8;
+                        INSERT INTO `currencies` (`symbol`, `name`)
+                        VALUES ($symbol, $name)
+                        RETURNING `id`
+                    """,
+                    {"$symbol": ydb.PrimitiveType.Utf8, "$name": ydb.PrimitiveType.Utf8}
+                ),
+                {"$symbol": symbol, "$name": name},
+                commit_tx=True,
+                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
+            )
+
+            return insert_result[0].rows[0].id
+
+        return self.pool.retry_operation_sync(upsert)
+
+    def insert_exchange_rate(self, currency_id: int, rate: float) -> None:
+        def insert(session):
+            return session.transaction().execute(
+                ydb.DataQuery(
+                    """
+                        DECLARE $created_at AS Utf8;
+                        DECLARE $currency_id AS Int64;
+                        DECLARE $rate AS Double;
+                        INSERT INTO `exchange_rates` (`created_at`, `currency_id`, `rate`)
+                        VALUES ($created_at, $currency_id, $rate)
+                    """,
+                    {"$created_at": ydb.PrimitiveType.Utf8, "$currency_id": ydb.PrimitiveType.Int64, "$rate": ydb.PrimitiveType.Double}
+                ),
+                {
+                    "$created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "$currency_id": currency_id,
+                    "$rate": rate,
+                },
+                commit_tx=True,
+                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
+            )
+
+        self.pool.retry_operation_sync(insert)

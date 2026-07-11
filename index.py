@@ -31,6 +31,7 @@ from handlers.expenses import (
     delete_expense,
     optimize,
 )
+from handlers.rates import update_rates
 from handlers.stars import (
     create_invoice_link,
     paid_premium,
@@ -65,11 +66,8 @@ def handler(event, context):
     print(context)
 
     if 'httpMethod' not in event:
-        return {
-            'statusCode': 200,
-            'headers': {"Content-Type": "application/json"},
-            'body': json.dumps({"ok": True}),
-        }
+        db: AbstractBase = Database()
+        return update_rates(db)
 
     if event['httpMethod'] == 'GET' or event['httpMethod'] == 'POST':
         db: AbstractBase = Database()

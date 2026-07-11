@@ -67,6 +67,14 @@ class AbstractBase(ABC):
     def paid_premium(self, user: UserORM, expired_date: str) -> None:
         pass
 
+    @abstractmethod
+    def upsert_currency(self, symbol: str, name: str) -> int:
+        pass
+
+    @abstractmethod
+    def insert_exchange_rate(self, currency_id: int, rate: float) -> None:
+        pass
+
 
 class UserDoesntExistInDB(Exception):
     pass
