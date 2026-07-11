@@ -45,7 +45,7 @@ class Database(AbstractBase):
                     FROM `users`
                     WHERE `telegram_id` == $telegram_id;
                 """,
-                parameters={"$telegram_id": telegram_id},
+                {"$telegram_id": telegram_id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2),
             )
