@@ -68,11 +68,7 @@ class AbstractBase(ABC):
         pass
 
     @abstractmethod
-    def upsert_currency(self, symbol: str, name: str) -> int:
-        pass
-
-    @abstractmethod
-    def insert_exchange_rate(self, currency_id: int, rate: float) -> None:
+    def batch_insert_exchange_rates(self, rates: list[tuple[int, float]]) -> None:
         pass
 
 

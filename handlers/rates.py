@@ -1,6 +1,7 @@
 import requests
 
 from abstract_base import AbstractBase
+from constants.currencies import CODE_TO_ID
 from . import json_response
 
 
@@ -8,8 +9,13 @@ def update_rates(db: AbstractBase) -> dict:
     response = requests.get('https://www.floatrates.com/daily/USD.json', timeout=10)
     data = response.json()
 
+    batch = []
     for code, info in data.items():
-        currency_id = db.upsert_currency(info['code'], info['name'])
-        db.insert_exchange_rate(currency_id, float(info['rate']))
+        currency_id = CODE_TO_ID.get(info['code'])
+        if currency_id is not None:
+            batch.append((currency_id, float(info['rate'])))
 
-    return json_response({"ok": True, "updated": len(data)})
+    if batch:
+        db.batch_insert_exchange_rates(batch)
+
+    return json_response({"ok": True, "updated": len(batch)})

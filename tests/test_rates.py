@@ -87,55 +87,6 @@ def db(mock_driver, mock_pool):
     return Database()
 
 
-def test_upsert_currency_create(db, mock_pool):
-    mock_pool.session.transaction_mock.set_return(
-        [MockResultSet([])],                       # SELECT returns nothing
-        [MockResultSet([MockRow(id=42)])],         # INSERT returns new id
-    )
-
-    result = db.upsert_currency('USD', 'US Dollar')
-
-    assert result == 42
-
-    assert len(mock_pool.session.transaction_mock.executed) == 2
-    select_query = mock_pool.session.transaction_mock.executed[0][0]
-    assert isinstance(select_query, ydb.DataQuery)
-    assert '$symbol' in select_query.yql_text
-
-    insert_query = mock_pool.session.transaction_mock.executed[1][0]
-    assert isinstance(insert_query, ydb.DataQuery)
-    assert 'INSERT INTO `currencies`' in insert_query.yql_text
-    assert 'RETURNING' in insert_query.yql_text
-
-
-def test_upsert_currency_exists(db, mock_pool):
-    mock_pool.session.transaction_mock.set_return(
-        [MockResultSet([MockRow(id=7)])],          # SELECT returns existing row
-    )
-
-    result = db.upsert_currency('EUR', 'Euro')
-
-    assert result == 7
-
-    assert len(mock_pool.session.transaction_mock.executed) == 1
-    select_query = mock_pool.session.transaction_mock.executed[0][0]
-    assert isinstance(select_query, ydb.DataQuery)
-    assert 'SELECT `id`' in select_query.yql_text
-
-
-def test_insert_exchange_rate(db, mock_pool):
-    db.insert_exchange_rate(1, 0.85)
-
-    assert len(mock_pool.session.transaction_mock.executed) == 1
-    query, params, _, _ = mock_pool.session.transaction_mock.executed[0]
-    assert isinstance(query, ydb.DataQuery)
-    assert 'INSERT INTO `exchange_rates`' in query.yql_text
-    assert params['$currency_id'] == 1
-    assert params['$rate'] == 0.85
-    assert '$created_at' in query.yql_text
-    assert params['$created_at'] is not None
-
-
 FAKE_RATES_RESPONSE = {
     "usd": {"code": "USD", "name": "US Dollar", "rate": "1.0"},
     "eur": {"code": "EUR", "name": "Euro", "rate": "0.92"},
@@ -149,19 +100,27 @@ def test_update_rates(mock_get, db):
     mock_response.json.return_value = FAKE_RATES_RESPONSE
     mock_get.return_value = mock_response
 
-    with patch.object(db, 'upsert_currency', return_value=1) as mock_upsert, \
-         patch.object(db, 'insert_exchange_rate') as mock_insert:
+    with patch.object(db, 'batch_insert_exchange_rates') as mock_batch_insert:
         result = update_rates(db)
 
         body = json.loads(result['body'])
         assert body == {"ok": True, "updated": 3}
 
-        assert mock_upsert.call_count == 3
-        mock_upsert.assert_any_call('USD', 'US Dollar')
-        mock_upsert.assert_any_call('EUR', 'Euro')
-        mock_upsert.assert_any_call('GBP', 'British Pound')
+        mock_batch_insert.assert_called_once_with([
+            (1, 1.0),
+            (2, 0.92),
+            (53, 0.79),
+        ])
 
-        assert mock_insert.call_count == 3
-        mock_insert.assert_any_call(1, 1.0)
-        mock_insert.assert_any_call(1, 0.92)
-        mock_insert.assert_any_call(1, 0.79)
+
+def test_batch_insert_exchange_rates(db, mock_pool):
+    db.batch_insert_exchange_rates([(1, 1.0), (2, 0.85)])
+
+    assert len(mock_pool.session.transaction_mock.executed) == 1
+    query = mock_pool.session.transaction_mock.executed[0][0]
+    assert isinstance(query, ydb.DataQuery)
+    assert 'INSERT INTO `exchange_rates`' in query.yql_text
+    assert "VALUES" in query.yql_text
+    assert ", 1, 1.0)" in query.yql_text
+    assert ", 2, 0.85)" in query.yql_text
+    assert query.yql_text.count("VALUES") == 1
