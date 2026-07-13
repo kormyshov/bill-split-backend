@@ -643,3 +643,39 @@ class Database(AbstractBase):
             )
 
         self.pool.retry_operation_sync(insert)
+
+    def get_latest_exchange_rates(self, currency_id: int) -> list[tuple[int, float]]:
+        def select(session):
+            query = ydb.DataQuery(
+                """
+                    DECLARE $currency_id AS Int64;
+
+                    $max_created_at = (SELECT MAX(created_at) FROM exchange_rates);
+                    $base_rate = (
+                        SELECT rate
+                        FROM exchange_rates
+                        WHERE created_at == $max_created_at AND currency_id == $currency_id
+                    );
+
+                    SELECT
+                        r.currency_id AS currency_id,
+                        r.rate / $base_rate AS rate
+                    FROM exchange_rates AS r
+                    WHERE r.created_at == $max_created_at
+                """,
+                {"$currency_id": ydb.PrimitiveType.Int64}
+            )
+            return session.transaction().execute(
+                query,
+                {"$currency_id": currency_id},
+                commit_tx=True,
+                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
+            )
+
+        result = self.pool.retry_operation_sync(select)
+        if not result[0].rows or result[0].rows[0].rate is None:
+            return []
+        return [
+            (row.currency_id, row.rate)
+            for row in result[0].rows
+        ]

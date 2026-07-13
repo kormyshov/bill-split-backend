@@ -124,3 +124,121 @@ def test_batch_insert_exchange_rates(db, mock_pool):
     assert ", 1, 1.0)" in query.yql_text
     assert ", 2, 0.85)" in query.yql_text
     assert query.yql_text.count("VALUES") == 1
+
+
+def make_mock_session(get_latest_result):
+    class MockRow:
+        def __init__(self, **kwargs):
+            for k, v in kwargs.items():
+                setattr(self, k, v)
+
+    class MockResultSet:
+        def __init__(self, rows):
+            self.rows = rows
+
+    class MockTx:
+        def __init__(self):
+            self.execute = Mock(return_value=[MockResultSet(get_latest_result)])
+
+        def begin(self):
+            return self
+
+        def commit(self):
+            pass
+
+    class MockSession:
+        def transaction(self, *args, **kwargs):
+            return MockTx()
+
+    return MockSession()
+
+
+def test_get_rates_success(db):
+    rows = [
+        MockRow(currency_id=1, rate=1.0),
+        MockRow(currency_id=2, rate=0.92),
+        MockRow(currency_id=53, rate=0.79),
+    ]
+    mock_session = make_mock_session(rows)
+    db.pool.retry_operation_sync = Mock(return_value=[MockResultSet(rows)])
+
+    result = db.get_latest_exchange_rates(1)
+
+    assert result == [(1, 1.0), (2, 0.92), (53, 0.79)]
+
+
+def test_get_rates_success_eur(db):
+    rows = [
+        MockRow(currency_id=1, rate=1.0),
+        MockRow(currency_id=2, rate=0.92),
+        MockRow(currency_id=53, rate=0.79),
+    ]
+    db.pool.retry_operation_sync = Mock(return_value=[MockResultSet(rows)])
+
+    result = db.get_latest_exchange_rates(2)
+
+    assert result == [(1, 1.0), (2, 0.92), (53, 0.79)]
+
+
+def test_get_rates_not_found(db):
+    rows = [
+        MockRow(currency_id=1, rate=None),
+    ]
+    db.pool.retry_operation_sync = Mock(return_value=[MockResultSet(rows)])
+
+    result = db.get_latest_exchange_rates(999)
+
+    assert result == []
+
+
+def test_get_rates_empty_db(db):
+    db.pool.retry_operation_sync = Mock(return_value=[MockResultSet([])])
+
+    result = db.get_latest_exchange_rates(1)
+
+    assert result == []
+
+
+def test_get_rates_handler_usd():
+    from handlers.rates import get_rates
+
+    def mock_get_latest(currency_id):
+        return [(1, 1.0), (2, 0.92), (53, 0.79)]
+
+    db = Mock()
+    db.get_latest_exchange_rates = mock_get_latest
+    user = Mock()
+    event = {
+        'queryStringParameters': {
+            'currency_id': '1',
+        }
+    }
+
+    result = get_rates(db, user, event)
+    body = json.loads(result['body'])
+
+    assert body == {
+        "rates": {
+            "1": 1.0,
+            "2": 0.92,
+            "53": 0.79,
+        }
+    }
+
+
+def test_get_rates_handler_not_found():
+    from handlers.rates import get_rates
+
+    db = Mock()
+    db.get_latest_exchange_rates = Mock(return_value=[])
+    user = Mock()
+    event = {
+        'queryStringParameters': {
+            'currency_id': '999',
+        }
+    }
+
+    result = get_rates(db, user, event)
+    body = json.loads(result['body'])
+
+    assert body == {"rates": {}}

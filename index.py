@@ -31,7 +31,7 @@ from handlers.expenses import (
     delete_expense,
     optimize,
 )
-from handlers.rates import update_rates
+from handlers.rates import update_rates, get_rates
 from handlers.stars import (
     create_invoice_link,
     paid_premium,
@@ -57,6 +57,7 @@ METHOD_HANDLERS: dict[str, HandlerFunc] = {
     'expenses/optimize': optimize,
     'stars/create_invoice_link': create_invoice_link,
     'stars/paid_premium': paid_premium,
+    'rates/get_rates': get_rates,
 }
 
 

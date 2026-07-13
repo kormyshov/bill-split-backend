@@ -71,6 +71,10 @@ class AbstractBase(ABC):
     def batch_insert_exchange_rates(self, rates: list[tuple[int, float]]) -> None:
         pass
 
+    @abstractmethod
+    def get_latest_exchange_rates(self, currency_id: int) -> list[tuple[int, float]]:
+        pass
+
 
 class UserDoesntExistInDB(Exception):
     pass

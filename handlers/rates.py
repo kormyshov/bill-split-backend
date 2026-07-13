@@ -2,6 +2,7 @@ import requests
 
 from abstract_base import AbstractBase
 from constants.currencies import CODE_TO_ID
+from user_orm import UserORM
 from . import json_response
 
 
@@ -19,3 +20,9 @@ def update_rates(db: AbstractBase) -> dict:
         db.batch_insert_exchange_rates(batch)
 
     return json_response({"ok": True, "updated": len(batch)})
+
+
+def get_rates(db: AbstractBase, user: UserORM, event: dict) -> dict:
+    currency_id = int(event['queryStringParameters']['currency_id'])
+    rates = db.get_latest_exchange_rates(currency_id)
+    return json_response({"rates": dict(rates)})
