@@ -88,7 +88,6 @@ def db(mock_driver, mock_pool):
 
 
 FAKE_RATES_RESPONSE = {
-    "usd": {"code": "USD", "name": "US Dollar", "rate": "1.0"},
     "eur": {"code": "EUR", "name": "Euro", "rate": "0.92"},
     "gbp": {"code": "GBP", "name": "British Pound", "rate": "0.79"},
 }

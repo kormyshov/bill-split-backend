@@ -10,10 +10,10 @@ def update_rates(db: AbstractBase) -> dict:
     response = requests.get('https://www.floatrates.com/daily/USD.json', timeout=10)
     data = response.json()
 
-    batch = []
+    batch = [(1, 1.0)]
     for code, info in data.items():
         currency_id = CODE_TO_ID.get(info['code'])
-        if currency_id is not None:
+        if currency_id is not None and currency_id != 1:
             batch.append((currency_id, float(info['rate'])))
 
     if batch:
