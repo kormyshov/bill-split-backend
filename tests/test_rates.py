@@ -200,6 +200,7 @@ def test_get_rates_empty_db(db):
 
 
 def test_get_rates_handler_usd():
+    import base64
     from handlers.rates import get_rates
 
     def mock_get_latest(currency_id):
@@ -208,10 +209,9 @@ def test_get_rates_handler_usd():
     db = Mock()
     db.get_latest_exchange_rates = mock_get_latest
     user = Mock()
+    body_bytes = json.dumps({'currency_id': 1}).encode('utf-8')
     event = {
-        'queryStringParameters': {
-            'currency_id': '1',
-        }
+        'body': base64.b64encode(body_bytes).decode('utf-8'),
     }
 
     result = get_rates(db, user, event)
@@ -227,15 +227,15 @@ def test_get_rates_handler_usd():
 
 
 def test_get_rates_handler_not_found():
+    import base64
     from handlers.rates import get_rates
 
     db = Mock()
     db.get_latest_exchange_rates = Mock(return_value=[])
     user = Mock()
+    body_bytes = json.dumps({'currency_id': 999}).encode('utf-8')
     event = {
-        'queryStringParameters': {
-            'currency_id': '999',
-        }
+        'body': base64.b64encode(body_bytes).decode('utf-8'),
     }
 
     result = get_rates(db, user, event)
