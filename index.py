@@ -36,6 +36,7 @@ from handlers.stars import (
     create_invoice_link,
     paid_premium,
 )
+from handlers.phone import set_phone, delete_phone
 
 HandlerFunc = Callable[[AbstractBase, UserORM, dict], Optional[dict]]
 
@@ -58,6 +59,8 @@ METHOD_HANDLERS: dict[str, HandlerFunc] = {
     'stars/create_invoice_link': create_invoice_link,
     'stars/paid_premium': paid_premium,
     'rates/get_rates': get_rates,
+    'phone/set': set_phone,
+    'phone/delete': delete_phone,
 }
 
 

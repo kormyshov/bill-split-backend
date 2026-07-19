@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from unittest.mock import Mock, MagicMock, patch, PropertyMock
 from datetime import datetime
@@ -102,7 +104,8 @@ def test_get_user_info_success(db, mock_pool):
             'telegram_id': '12345',
             'first_name': 'John',
             'last_name': 'Doe',
-            'expired_date': b'2025-01-01'
+            'expired_date': b'2025-01-01',
+            'phone': b''
         }
         mock_pool.session.transaction_mock.set_return([MockResultSet([MockRow(**user_data)])])
         
@@ -141,7 +144,7 @@ def test_create_user(db, mock_pool):
 
 
 def test_get_group_list(db, mock_pool):
-        user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01')
+        user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01', '')
         group_data = {
             'id': 1,
             'created_at': '2024-01-01 12:00:00',
@@ -165,7 +168,7 @@ def test_get_group_list(db, mock_pool):
 
 
 def test_create_group(db, mock_pool):
-        user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01')
+        user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01', '')
         group_result = MockRow(id=42)
         mock_pool.session.transaction_mock.set_return(
             [MockResultSet([group_result])],  # First execute: returns list of result sets
@@ -207,7 +210,8 @@ def test_get_group_member_list(db, mock_pool):
             'id': 2,
             'telegram_id': '67890',
             'first_name': 'Jane',
-            'last_name': 'Smith'
+            'last_name': 'Smith',
+            'phone': b''
         }
         mock_pool.session.transaction_mock.set_return([MockResultSet([MockRow(**member_data)])])
     
@@ -223,7 +227,7 @@ def test_get_group_member_list(db, mock_pool):
 
 
 def test_join_to_group(db, mock_pool):
-        user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01')
+        user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01', '')
         db.join_to_group(user, 'token123')
     
         query, params, _, _ = mock_pool.session.transaction_mock.executed[0]
@@ -237,7 +241,7 @@ def test_join_to_group(db, mock_pool):
 
 
 def test_leave_group(db, mock_pool):
-        user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01')
+        user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01', '')
         db.leave_group(user, 1)
     
         query, params, _, _ = mock_pool.session.transaction_mock.executed[0]
@@ -250,7 +254,7 @@ def test_leave_group(db, mock_pool):
 
 
 def test_get_group_expense_list(db, mock_pool):
-        user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01')
+        user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01', '')
         expense_data = {
             'id': 1,
             'name': 'Dinner',
@@ -350,7 +354,7 @@ def test_delete_expense(db, mock_pool):
 
 
 def test_get_group_balance_list(db, mock_pool):
-        user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01')
+        user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01', '')
         balance_data = {
             'user_id': 2,
             'currency': 1,
@@ -377,7 +381,7 @@ def test_get_group_balance_list(db, mock_pool):
 
 
 def test_paid_premium(db, mock_pool):
-        user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01')
+        user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01', '')
         db.paid_premium(user, '2026-01-01')
     
         query, params, _, _ = mock_pool.session.transaction_mock.executed[0]
@@ -431,3 +435,100 @@ def test_all_parameterized_queries_have_declare(db):
             declare_pattern = rf'DECLARE\s+\${param}\s+AS\s+\w+'
             assert re.search(declare_pattern, yql), \
                 f"Missing DECLARE for ${param} in YQL:\n{yql[:200]}..."
+
+
+def test_update_phone(db, mock_pool):
+    user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01', '')
+
+    db.update_phone(user, '+71234567890')
+
+    query, params, _, _ = mock_pool.session.transaction_mock.executed[0]
+    assert isinstance(query, ydb.DataQuery)
+    assert 'UPSERT INTO `users`' in query.yql_text
+    assert params == {
+        '$user_id': 1,
+        '$phone': '+71234567890',
+    }
+
+
+def test_delete_phone(db, mock_pool):
+    user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01', '+71234567890')
+
+    db.delete_phone(user)
+
+    query, params, _, _ = mock_pool.session.transaction_mock.executed[0]
+    assert isinstance(query, ydb.DataQuery)
+    assert 'UPSERT INTO `users`' in query.yql_text
+    assert params == {
+        '$user_id': 1,
+        '$phone': '',
+    }
+
+
+def test_set_phone_handler_valid():
+    import base64
+    from handlers.phone import set_phone
+
+    db = Mock()
+    user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01', '')
+    body_bytes = json.dumps({'phone': '+71234567890'}).encode('utf-8')
+    event = {
+        'body': base64.b64encode(body_bytes).decode('utf-8'),
+    }
+
+    result = set_phone(db, user, event)
+    body = json.loads(result['body'])
+
+    assert body == {'ok': True}
+    db.update_phone.assert_called_once_with(user, '+71234567890')
+
+
+def test_set_phone_handler_invalid():
+    import base64
+    from handlers.phone import set_phone
+
+    db = Mock()
+    user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01', '')
+    body_bytes = json.dumps({'phone': 'not-a-phone'}).encode('utf-8')
+    event = {
+        'body': base64.b64encode(body_bytes).decode('utf-8'),
+    }
+
+    result = set_phone(db, user, event)
+    body = json.loads(result['body'])
+
+    assert body == {'ok': False, 'error': 'Invalid phone format'}
+    db.update_phone.assert_not_called()
+
+
+def test_set_phone_handler_missing():
+    import base64
+    from handlers.phone import set_phone
+
+    db = Mock()
+    user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01', '')
+    body_bytes = json.dumps({}).encode('utf-8')
+    event = {
+        'body': base64.b64encode(body_bytes).decode('utf-8'),
+    }
+
+    result = set_phone(db, user, event)
+    body = json.loads(result['body'])
+
+    assert body == {'ok': False, 'error': 'Invalid phone format'}
+    db.update_phone.assert_not_called()
+
+
+def test_delete_phone_handler():
+    import base64
+    from handlers.phone import delete_phone
+
+    db = Mock()
+    user = UserORM(1, '12345', 'John', 'Doe', '2025-01-01', '+71234567890')
+    event = {'body': base64.b64encode(b'{}').decode('utf-8')}
+
+    result = delete_phone(db, user, event)
+    body = json.loads(result['body'])
+
+    assert body == {'ok': True}
+    db.delete_phone.assert_called_once_with(user)

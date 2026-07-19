@@ -68,6 +68,14 @@ class AbstractBase(ABC):
         pass
 
     @abstractmethod
+    def update_phone(self, user: UserORM, phone: str) -> None:
+        pass
+
+    @abstractmethod
+    def delete_phone(self, user: UserORM) -> None:
+        pass
+
+    @abstractmethod
     def batch_insert_exchange_rates(self, rates: list[tuple[int, float]]) -> None:
         pass
 

@@ -7,3 +7,4 @@ class UserORM(NamedTuple):
     first_name: str
     last_name: str
     expired_date: str
+    phone: str

@@ -42,6 +42,7 @@ class Database(AbstractBase):
                         `first_name`,
                         `last_name`,
                         `expired_date` ?? '1900-01-01' AS `expired_date`,
+                        `phone` ?? '' AS `phone`,
                     FROM `users`
                     WHERE `telegram_id` == $telegram_id;
                 """,
@@ -65,6 +66,7 @@ class Database(AbstractBase):
             first_name=result[0].rows[0].first_name,
             last_name=result[0].rows[0].last_name,
             expired_date=result[0].rows[0].expired_date.decode('utf-8'),
+            phone=result[0].rows[0].phone.decode('utf-8'),
         )
 
     def create_user(self, telegram_id: str, first_name: str, last_name: str) -> None:
@@ -203,6 +205,7 @@ class Database(AbstractBase):
                         `telegram_id`,
                         `first_name`,
                         `last_name`,
+                        `phone` ?? '' AS `phone`,
                     FROM `group_members` AS `gm`
                     LEFT JOIN `users` AS `u`
                     ON `gm`.`user_id` == `u`.`id`
@@ -225,6 +228,7 @@ class Database(AbstractBase):
                 first_name=e.first_name,
                 last_name=e.last_name,
                 expired_date='1900-01-01',
+                phone=e.phone.decode('utf-8'),
             ) for e in result[0].rows
         ]
 
@@ -621,6 +625,29 @@ class Database(AbstractBase):
             )
 
         self.pool.retry_operation_sync(upsert)
+
+    def update_phone(self, user: UserORM, phone: str) -> None:
+        def upsert(session):
+            query = ydb.DataQuery(
+                """
+                    DECLARE $user_id AS Int64;
+                    DECLARE $phone AS Utf8;
+                    UPSERT INTO `users` (`id`, `phone`)
+                    VALUES ($user_id, $phone)
+                """,
+                {"$user_id": ydb.PrimitiveType.Int64, "$phone": ydb.PrimitiveType.Utf8}
+            )
+            return session.transaction().execute(
+                query,
+                {"$user_id": user.id, "$phone": phone},
+                commit_tx=True,
+                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
+            )
+
+        self.pool.retry_operation_sync(upsert)
+
+    def delete_phone(self, user: UserORM) -> None:
+        self.update_phone(user, '')
 
     def batch_insert_exchange_rates(self, rates: list[tuple[int, float]]) -> None:
         created_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
