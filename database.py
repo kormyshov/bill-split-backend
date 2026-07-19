@@ -66,7 +66,7 @@ class Database(AbstractBase):
             first_name=result[0].rows[0].first_name,
             last_name=result[0].rows[0].last_name,
             expired_date=result[0].rows[0].expired_date.decode('utf-8'),
-            phone=result[0].rows[0].phone.decode('utf-8'),
+            phone=result[0].rows[0].phone,
         )
 
     def create_user(self, telegram_id: str, first_name: str, last_name: str) -> None:
@@ -228,7 +228,7 @@ class Database(AbstractBase):
                 first_name=e.first_name,
                 last_name=e.last_name,
                 expired_date='1900-01-01',
-                phone=e.phone.decode('utf-8'),
+                phone=e.phone,
             ) for e in result[0].rows
         ]
 
