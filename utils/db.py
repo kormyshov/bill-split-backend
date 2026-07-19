@@ -1,7 +1,10 @@
+import logging
 from typing import List
 
 from debt_draft import DebtDraft
 from expense_draft import ExpenseDraft
+
+logger = logging.getLogger(__name__)
 
 
 def create_equally_expense(user_id_from: int, amount: int, currency_id: int, user_ids: List[int]) -> ExpenseDraft:
@@ -20,6 +23,9 @@ def create_equally_expense(user_id_from: int, amount: int, currency_id: int, use
             )
         )
 
+    logger.debug('Equally expense draft created', extra={'extra_data': {
+        'user_id_from': user_id_from, 'amount': amount, 'users': cnt,
+    }})
     return ExpenseDraft(user_id_from, amount, currency_id, debts)
 
 
@@ -38,9 +44,15 @@ def create_custom_expense(user_id_from: int, amount: int, currency_id: int, tota
         ))
         rest -= item.amount
 
+    logger.debug('Custom expense draft created', extra={'extra_data': {
+        'user_id_from': user_id_from, 'amount': amount, 'users': cnt,
+    }})
     return ExpenseDraft(user_id_from, amount, currency_id, debts)
 
 def create_direct_expense(user_id_from: int, user_id_to: int, amount: int, currency_id: int) -> ExpenseDraft:
 
     debts: List[DebtDraft] = [DebtDraft(user_id_to, amount)]
+    logger.debug('Direct expense draft created', extra={'extra_data': {
+        'user_id_from': user_id_from, 'user_id_to': user_id_to, 'amount': amount,
+    }})
     return ExpenseDraft(user_id_from, amount, currency_id, debts)

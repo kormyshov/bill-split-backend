@@ -1,6 +1,8 @@
 import json
+import logging
 from typing import Callable, Optional
 
+from logging_setup import setup_logging
 from utils.validates import (
     validate_telegram_data,
     validate_init_db,
@@ -38,6 +40,9 @@ from handlers.stars import (
 )
 from handlers.phone import set_phone, delete_phone
 
+setup_logging()
+logger = logging.getLogger(__name__)
+
 HandlerFunc = Callable[[AbstractBase, UserORM, dict], Optional[dict]]
 
 METHOD_HANDLERS: dict[str, HandlerFunc] = {
@@ -65,16 +70,26 @@ METHOD_HANDLERS: dict[str, HandlerFunc] = {
 
 
 def handler(event, context):
-
-    print(event)
-    print(context)
+    logger.debug('Incoming event', extra={'extra_data': event})
+    logger.debug('Incoming context')
 
     if 'httpMethod' not in event:
         db: AbstractBase = Database()
-        return update_rates(db)
+        result = update_rates(db)
+        logger.info('Scheduled rates update completed', extra={'extra_data': {'updated': result}})
+        return result
 
     if event['httpMethod'] == 'GET' or event['httpMethod'] == 'POST':
         db: AbstractBase = Database()
+        method = event['queryStringParameters'].get('method', 'unknown')
+        user_id = event['queryStringParameters'].get('user_id', 'unknown')
+
+        logger.info('Handling request', extra={'extra_data': {
+            'method': method,
+            'user_id': user_id,
+            'http_method': event['httpMethod'],
+        }})
+
         try:
             user: UserORM = db.get_user_info(event['queryStringParameters']['user_id'])
         except UserDoesntExistInDB:
@@ -83,17 +98,20 @@ def handler(event, context):
                 event['queryStringParameters']['first_name'],
                 event['queryStringParameters']['last_name'],
             )
+            logger.info('Created new user', extra={'extra_data': {'user_id': user_id}})
 
             user: UserORM = db.get_user_info(event['queryStringParameters']['user_id'])
         except KeyError:
             if 'pre_checkout_query' in event['body']:
                 query_id = json.loads(event['body'])['pre_checkout_query']['id']
+                logger.info('Pre-checkout query', extra={'extra_data': {'query_id': query_id}})
                 return {
                     'statusCode': 200,
                     'headers': {"Content-Type": "application/json"},
                     'body': json.dumps({"ok": True, "pre_checkout_query_id": query_id}),
                 }
 
+            logger.warning('KeyError in request', extra={'extra_data': {'event': event}})
             return {
                 'statusCode': 200,
                 'headers': {"Content-Type": "application/json"},
@@ -103,6 +121,7 @@ def handler(event, context):
         method = event['queryStringParameters']['method']
 
         if method == 'init_db' and validate_init_db(event['queryStringParameters']['user_id']):
+            logger.info('init_db request')
             return {
                 'statusCode': 200,
                 'headers': {"Content-Type": "application/json"},
@@ -114,9 +133,12 @@ def handler(event, context):
         ):
             handler_func = METHOD_HANDLERS.get(method)
             if handler_func:
+                logger.info('Executing handler', extra={'extra_data': {'method': method}})
                 result = handler_func(db, user, event)
                 if result is not None:
                     return result
+
+        logger.warning('No handler executed', extra={'extra_data': {'method': method}})
 
     return {
         'statusCode': 200,

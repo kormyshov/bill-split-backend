@@ -1,7 +1,10 @@
 import hmac
 import hashlib
+import logging
 from urllib.parse import unquote
 from config import Config
+
+logger = logging.getLogger(__name__)
 
 
 def validate_telegram_data(data: str) -> bool:
@@ -16,9 +19,16 @@ def validate_telegram_data(data: str) -> bool:
             auth_date = int(param[10:])
         sorted_params.append(param)
     if hash == '' or auth_date == -1:
+        logger.warning('Telegram validation failed: missing hash or auth_date')
         return False
-    return hmac.new(Config.SECRET_KEY, '\n'.join(sorted_params).encode(), hashlib.sha256).hexdigest() == hash
+    valid = hmac.new(Config.SECRET_KEY, '\n'.join(sorted_params).encode(), hashlib.sha256).hexdigest() == hash
+    if not valid:
+        logger.warning('Telegram validation failed: HMAC mismatch')
+    return valid
 
 
 def validate_init_db(user: str) -> bool:
-    return Config.BOT_TOKEN == user
+    result = Config.BOT_TOKEN == user
+    if not result:
+        logger.warning('init_db validation failed')
+    return result

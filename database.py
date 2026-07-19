@@ -1,3 +1,4 @@
+import logging
 import ydb
 import ydb.iam
 from typing import List
@@ -15,10 +16,16 @@ from abstract_base import (
     UserDoesntExistInDB,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class Database(AbstractBase):
 
     def __init__(self):
+        logger.debug('Connecting to YDB', extra={'extra_data': {
+            'endpoint': Config.YDB_ENDPOINT,
+            'database': Config.YDB_DATABASE,
+        }})
         self.driver = ydb.Driver(
             endpoint=Config.YDB_ENDPOINT,
             database=Config.YDB_DATABASE,
@@ -26,6 +33,7 @@ class Database(AbstractBase):
         )
         self.driver.wait(fail_fast=True, timeout=5)
         self.pool = ydb.SessionPool(self.driver)
+        logger.info('Connected to YDB')
 
     def __del__(self):
         self.pool.stop()
@@ -58,8 +66,10 @@ class Database(AbstractBase):
         result = self.pool.retry_operation_sync(select)
 
         if len(result[0].rows) == 0:
+            logger.debug('User not found', extra={'extra_data': {'telegram_id': telegram_id}})
             raise UserDoesntExistInDB
 
+        logger.debug('User found', extra={'extra_data': {'telegram_id': telegram_id}})
         return UserORM(
             id=result[0].rows[0].id,
             telegram_id=result[0].rows[0].telegram_id,
@@ -89,6 +99,7 @@ class Database(AbstractBase):
             )
 
         self.pool.retry_operation_sync(upsert)
+        logger.info('User created', extra={'extra_data': {'telegram_id': telegram_id}})
 
     def get_group_list(self, user: UserORM) -> List[GroupORM]:
         def select(session):
@@ -172,6 +183,7 @@ class Database(AbstractBase):
             )
 
         self.pool.retry_operation_sync(create)
+        logger.info('Group created', extra={'extra_data': {'user_id': user.id, 'name': name}})
 
     def change_group_name(self, group_id: int, name: str, created_at: str, created_by: int) -> None:
         def upsert(session):
@@ -474,6 +486,7 @@ class Database(AbstractBase):
             tx.commit()
 
         self.pool.retry_operation_sync(insert)
+        logger.info('Expense created in group', extra={'extra_data': {'group_id': group_id, 'name': name}})
 
     def delete_expense(self, expense_id: int) -> None:
         def delete(session):
@@ -497,6 +510,7 @@ class Database(AbstractBase):
             )
 
         self.pool.retry_operation_sync(delete)
+        logger.info('Expense deleted', extra={'extra_data': {'expense_id': expense_id}})
 
     def get_group_balance_list(self, user: UserORM, group_id: int) -> List[BalanceORM]:
         def select(session):
@@ -670,6 +684,7 @@ class Database(AbstractBase):
             )
 
         self.pool.retry_operation_sync(insert)
+        logger.info('Exchange rates inserted', extra={'extra_data': {'count': len(rates)}})
 
     def get_latest_exchange_rates(self, currency_id: int) -> list[tuple[int, float]]:
         def select(session):
