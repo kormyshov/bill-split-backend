@@ -645,15 +645,16 @@ class Database(AbstractBase):
             query = ydb.DataQuery(
                 """
                     DECLARE $user_id AS Int64;
+                    DECLARE $telegram_id AS Utf8;
                     DECLARE $phone AS Utf8;
-                    UPSERT INTO `users` (`id`, `phone`)
-                    VALUES ($user_id, $phone)
+                    UPSERT INTO `users` (`id`, `telegram_id`, `phone`)
+                    VALUES ($user_id, $telegram_id, $phone)
                 """,
-                {"$user_id": ydb.PrimitiveType.Int64, "$phone": ydb.PrimitiveType.Utf8}
+                {"$user_id": ydb.PrimitiveType.Int64, "$telegram_id": ydb.PrimitiveType.Utf8, "$phone": ydb.PrimitiveType.Utf8}
             )
             return session.transaction().execute(
                 query,
-                {"$user_id": user.id, "$phone": phone},
+                {"$user_id": user.id, "$telegram_id": user.telegram_id, "$phone": phone},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
             )

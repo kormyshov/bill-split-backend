@@ -447,6 +447,7 @@ def test_update_phone(db, mock_pool):
     assert 'UPSERT INTO `users`' in query.yql_text
     assert params == {
         '$user_id': 1,
+        '$telegram_id': '12345',
         '$phone': '+71234567890',
     }
 
@@ -461,6 +462,7 @@ def test_delete_phone(db, mock_pool):
     assert 'UPSERT INTO `users`' in query.yql_text
     assert params == {
         '$user_id': 1,
+        '$telegram_id': '12345',
         '$phone': '',
     }
 
