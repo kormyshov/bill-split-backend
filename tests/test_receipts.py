@@ -69,7 +69,7 @@ def test_scan_receipt_sends_non_logging_request(config, post):
     assert ocr_call.kwargs['headers']['x-folder-id'] == 'b1g34n0j9lktsmu9ijjf'
     assert parser_call.kwargs['headers']['x-data-logging-enabled'] == 'false'
     assert parser_call.kwargs['headers']['OpenAI-Project'] == 'b1g34n0j9lktsmu9ijjf'
-    assert parser_call.kwargs['json']['response_format']['type'] == 'json_schema'
+    assert parser_call.kwargs['json']['response_format']['type'] == 'json_object'
 
 
 @patch('handlers.receipts.Config')

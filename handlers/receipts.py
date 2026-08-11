@@ -20,41 +20,6 @@ COMPLETIONS_URL = 'https://ai.api.cloud.yandex.net/v1/chat/completions'
 PARSER_MODEL = 'yandexgpt-5-lite'
 MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024
 SUPPORTED_MIME_TYPES = {'image/jpeg': 'JPEG', 'image/png': 'PNG'}
-RECEIPT_SCHEMA = {
-    'name': 'receipt',
-    'schema': {
-        'type': 'object',
-        'properties': {
-            'total': {
-                'type': 'number',
-                'description': 'The final amount paid. Omit when it cannot be determined.',
-            },
-            'currency': {
-                'type': 'string',
-                'description': 'ISO 4217 currency code. Omit when it cannot be determined.',
-            },
-            'items': {
-                'type': 'array',
-                'items': {
-                    'type': 'object',
-                    'properties': {
-                        'name': {'type': 'string'},
-                        'price': {
-                            'type': 'number',
-                            'description': 'Final price for the whole receipt line.',
-                        },
-                        'quantity': {
-                            'type': 'number',
-                            'description': 'Item quantity. Omit when it is not printed.',
-                        },
-                    },
-                    'required': ['name', 'price'],
-                },
-            },
-        },
-        'required': ['items'],
-    },
-}
 
 
 def _text_from_line(line: dict[str, Any]) -> str:
@@ -139,7 +104,11 @@ def parse_receipt(ocr_text: str) -> dict[str, Any]:
                     'content': (
                         'Extract a receipt from OCR text. Use only evidence present in the text. '
                         'Do not invent items or amounts. Normalize currency to an ISO 4217 code. '
-                        'The item price is the final amount for that receipt line, not a unit price.'
+                        'The item price is the final amount for that receipt line, not a unit price. '
+                        'Return exactly one JSON object with this shape: '
+                        '{"total": number or null, "currency": ISO code or null, '
+                        '"items": [{"name": string, "price": number, "quantity": number or null}]}. '
+                        'Use null when a value cannot be determined.'
                     ),
                 },
                 {'role': 'user', 'content': ocr_text},
@@ -147,7 +116,7 @@ def parse_receipt(ocr_text: str) -> dict[str, Any]:
             'temperature': 0,
             'max_tokens': 2000,
             'stream': False,
-            'response_format': {'type': 'json_schema', 'json_schema': RECEIPT_SCHEMA},
+            'response_format': {'type': 'json_object'},
         },
         timeout=20,
     )
