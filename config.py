@@ -15,3 +15,6 @@ class Config:
     USER_STORAGE_URL = os.environ.get('USER_STORAGE_URL')
     AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+
+    YANDEX_API_KEY = os.environ.get('YANDEX_API_KEY', '')
+    YANDEX_FOLDER_ID = os.environ.get('YANDEX_FOLDER_ID', '')

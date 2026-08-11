@@ -39,6 +39,7 @@ from handlers.stars import (
     paid_premium,
 )
 from handlers.phone import set_phone, delete_phone
+from handlers.receipts import scan_receipt
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -66,11 +67,16 @@ METHOD_HANDLERS: dict[str, HandlerFunc] = {
     'rates/get_rates': get_rates,
     'phone/set': set_phone,
     'phone/delete': delete_phone,
+    'receipts/scan': scan_receipt,
 }
 
 
 def handler(event, context):
-    logger.debug('Incoming event', extra={'extra_data': event})
+    # Request bodies may contain receipt photos. Do not log the raw event.
+    logger.debug('Incoming event', extra={'extra_data': {
+        'http_method': event.get('httpMethod'),
+        'has_body': bool(event.get('body')),
+    }})
     logger.debug('Incoming context')
 
     if 'httpMethod' not in event:
@@ -111,7 +117,10 @@ def handler(event, context):
                     'body': json.dumps({"ok": True, "pre_checkout_query_id": query_id}),
                 }
 
-            logger.warning('KeyError in request', extra={'extra_data': {'event': event}})
+            logger.warning('KeyError in request', extra={'extra_data': {
+                'http_method': event.get('httpMethod'),
+                'query_keys': sorted((event.get('queryStringParameters') or {}).keys()),
+            }})
             return {
                 'statusCode': 200,
                 'headers': {"Content-Type": "application/json"},

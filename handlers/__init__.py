@@ -2,9 +2,9 @@ import base64
 import json
 
 
-def json_response(data: dict) -> dict:
+def json_response(data: dict, status_code: int = 200) -> dict:
     return {
-        'statusCode': 200,
+        'statusCode': status_code,
         'headers': {"Content-Type": "application/json"},
         'body': json.dumps(data),
     }
