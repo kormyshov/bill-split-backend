@@ -36,6 +36,7 @@ class MockTx:
         self._return_idx = 0
         self.execute = Mock(side_effect=self._execute_impl)
         self.begin = Mock(return_value=self)
+        self.commit = Mock()
     
     def _execute_impl(self, query, params=None, commit_tx=True, settings=None):
         self.executed.append((query, params, commit_tx, settings))
@@ -51,10 +52,6 @@ class MockTx:
         self._return_values = list(values)
         self._return_idx = 0
     
-    def commit(self):
-        pass
-
-
 class MockSession:
     def __init__(self):
         self.transaction_mock = MockTx()
@@ -131,16 +128,61 @@ def test_get_user_info_not_found(db, mock_pool):
 
 
 def test_create_user(db, mock_pool):
-        db.create_user('12345', 'John', 'Doe')
-    
-        query, params, _, _ = mock_pool.session.transaction_mock.executed[0]
-        assert isinstance(query, ydb.DataQuery)
-        assert 'INSERT INTO `users`' in query.yql_text
-        assert params == {
-            '$telegram_id': '12345',
-            '$first_name': 'John',
-            '$last_name': 'Doe',
-        }
+    created_user = {
+        'id': 1,
+        'telegram_id': '12345',
+        'first_name': 'John',
+        'last_name': 'Doe',
+        'expired_date': None,
+        'phone': None,
+    }
+    mock_pool.session.transaction_mock.set_return(
+        [MockResultSet([])],
+        [MockResultSet([MockRow(**created_user)])],
+    )
+
+    user = db.create_user('12345', 'John', 'Doe')
+
+    assert user.id == 1
+    assert user.expired_date == '1900-01-01'
+    assert user.phone == ''
+    select_query, select_params, select_commit, _ = mock_pool.session.transaction_mock.executed[0]
+    assert isinstance(select_query, ydb.DataQuery)
+    assert '$telegram_id' in select_query.yql_text
+    assert select_params == {'$telegram_id': '12345'}
+    assert select_commit is False
+
+    insert_query, insert_params, insert_commit, _ = mock_pool.session.transaction_mock.executed[1]
+    assert isinstance(insert_query, ydb.DataQuery)
+    assert 'INSERT INTO `users`' in insert_query.yql_text
+    assert 'RETURNING *' in insert_query.yql_text
+    assert insert_params == {
+        '$telegram_id': '12345',
+        '$first_name': 'John',
+        '$last_name': 'Doe',
+    }
+    assert insert_commit is True
+
+
+def test_create_user_returns_existing_user_without_insert(db, mock_pool):
+    existing_user = {
+        'id': 1,
+        'telegram_id': '12345',
+        'first_name': 'John',
+        'last_name': 'Doe',
+        'expired_date': b'2025-01-01',
+        'phone': b'',
+    }
+    mock_pool.session.transaction_mock.set_return([MockResultSet([MockRow(**existing_user)])])
+
+    user = db.create_user('12345', 'John', 'Doe')
+
+    assert user.id == 1
+    assert len(mock_pool.session.transaction_mock.executed) == 1
+    _, params, commit_tx, _ = mock_pool.session.transaction_mock.executed[0]
+    assert params == {'$telegram_id': '12345'}
+    assert commit_tx is False
+    mock_pool.session.transaction_mock.commit.assert_called_once_with()
 
 
 def test_get_group_list(db, mock_pool):

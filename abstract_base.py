@@ -16,7 +16,7 @@ class AbstractBase(ABC):
         pass
 
     @abstractmethod
-    def create_user(self, telegram_id: str, first_name: str, last_name: str) -> None:
+    def create_user(self, telegram_id: str, first_name: str, last_name: str) -> UserORM:
         pass
 
     @abstractmethod

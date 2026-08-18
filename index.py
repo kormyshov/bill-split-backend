@@ -99,14 +99,12 @@ def handler(event, context):
         try:
             user: UserORM = db.get_user_info(event['queryStringParameters']['user_id'])
         except UserDoesntExistInDB:
-            db.create_user(
+            user = db.create_user(
                 event['queryStringParameters']['user_id'],
                 event['queryStringParameters']['first_name'],
                 event['queryStringParameters']['last_name'],
             )
-            logger.info('Created new user', extra={'extra_data': {'user_id': user_id}})
-
-            user: UserORM = db.get_user_info(event['queryStringParameters']['user_id'])
+            logger.info('User ensured', extra={'extra_data': {'user_id': user.id}})
         except KeyError:
             if 'pre_checkout_query' in event['body']:
                 query_id = json.loads(event['body'])['pre_checkout_query']['id']

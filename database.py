@@ -39,25 +39,43 @@ class Database(AbstractBase):
         self.pool.stop()
         self.driver.stop()
 
+    def _get_user_query(self) -> ydb.DataQuery:
+        return ydb.DataQuery(
+            """
+                DECLARE $telegram_id AS Utf8;
+                SELECT
+                    `id`,
+                    `telegram_id`,
+                    `first_name`,
+                    `last_name`,
+                    `expired_date` ?? '1900-01-01' AS `expired_date`,
+                    `phone` ?? '' AS `phone`,
+                FROM `users`
+                WHERE `telegram_id` == $telegram_id
+                ORDER BY `id`
+                LIMIT 1;
+            """,
+            {"$telegram_id": ydb.PrimitiveType.Utf8},
+        )
+
+    @staticmethod
+    def _decode(value):
+        return value.decode('utf-8') if isinstance(value, bytes) else value
+
+    def _user_from_row(self, row) -> UserORM:
+        return UserORM(
+            id=row.id,
+            telegram_id=self._decode(row.telegram_id),
+            first_name=self._decode(row.first_name),
+            last_name=self._decode(row.last_name),
+            expired_date=self._decode(row.expired_date) or '1900-01-01',
+            phone=self._decode(row.phone) or '',
+        )
+
     def get_user_info(self, telegram_id: str) -> UserORM:
         def select(session):
-            query = ydb.DataQuery(
-                """
-                    DECLARE $telegram_id AS Utf8;
-                    SELECT
-                        `id`,
-                        `telegram_id`,
-                        `first_name`,
-                        `last_name`,
-                        `expired_date` ?? '1900-01-01' AS `expired_date`,
-                        `phone` ?? '' AS `phone`,
-                    FROM `users`
-                    WHERE `telegram_id` == $telegram_id;
-                """,
-                {"$telegram_id": ydb.PrimitiveType.Utf8}
-            )
             return session.transaction().execute(
-                query,
+                self._get_user_query(),
                 {"$telegram_id": telegram_id},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2),
@@ -70,17 +88,21 @@ class Database(AbstractBase):
             raise UserDoesntExistInDB
 
         logger.debug('User found', extra={'extra_data': {'telegram_id': telegram_id}})
-        return UserORM(
-            id=result[0].rows[0].id,
-            telegram_id=result[0].rows[0].telegram_id,
-            first_name=result[0].rows[0].first_name,
-            last_name=result[0].rows[0].last_name,
-            expired_date=result[0].rows[0].expired_date.decode('utf-8'),
-            phone=result[0].rows[0].phone,
-        )
+        return self._user_from_row(result[0].rows[0])
 
-    def create_user(self, telegram_id: str, first_name: str, last_name: str) -> None:
-        def upsert(session):
+    def create_user(self, telegram_id: str, first_name: str, last_name: str) -> UserORM:
+        def create_or_get(session):
+            transaction = session.transaction()
+            existing = transaction.execute(
+                self._get_user_query(),
+                {"$telegram_id": telegram_id},
+                commit_tx=False,
+                settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2),
+            )
+            if existing[0].rows:
+                transaction.commit()
+                return self._user_from_row(existing[0].rows[0])
+
             query = ydb.DataQuery(
                 """
                     DECLARE $telegram_id AS Utf8;
@@ -88,18 +110,21 @@ class Database(AbstractBase):
                     DECLARE $last_name AS Utf8;
                     INSERT INTO `users` (`telegram_id`, `first_name`, `last_name`)
                     VALUES ($telegram_id, $first_name, $last_name)
+                    RETURNING *;
                 """,
                 {"$telegram_id": ydb.PrimitiveType.Utf8, "$first_name": ydb.PrimitiveType.Utf8, "$last_name": ydb.PrimitiveType.Utf8}
             )
-            return session.transaction().execute(
+            created = transaction.execute(
                 query,
                 {"$telegram_id": telegram_id, "$first_name": first_name, "$last_name": last_name},
                 commit_tx=True,
                 settings=ydb.BaseRequestSettings().with_timeout(3).with_operation_timeout(2)
             )
+            return self._user_from_row(created[0].rows[0])
 
-        self.pool.retry_operation_sync(upsert)
-        logger.info('User created', extra={'extra_data': {'telegram_id': telegram_id}})
+        user = self.pool.retry_operation_sync(create_or_get)
+        logger.info('User ensured', extra={'extra_data': {'telegram_id': telegram_id, 'user_id': user.id}})
+        return user
 
     def get_group_list(self, user: UserORM) -> List[GroupORM]:
         def select(session):
