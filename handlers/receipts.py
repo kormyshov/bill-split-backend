@@ -68,10 +68,16 @@ def _normalize_receipt(receipt: Any) -> dict[str, Any]:
         if not isinstance(item, dict):
             continue
         name = item.get('name')
+        name_en = item.get('name_en')
         price = item.get('price')
         if not isinstance(name, str) or not name.strip() or not isinstance(price, (int, float)):
             continue
-        normalized_item: dict[str, Any] = {'name': name.strip(), 'price': float(price)}
+        original_name = name.strip()
+        normalized_item: dict[str, Any] = {
+            'name': original_name,
+            'name_en': name_en.strip() if isinstance(name_en, str) and name_en.strip() else original_name,
+            'price': float(price),
+        }
         quantity = item.get('quantity')
         if isinstance(quantity, (int, float)) and quantity > 0:
             normalized_item['quantity'] = float(quantity)
@@ -105,9 +111,14 @@ def parse_receipt(ocr_text: str) -> dict[str, Any]:
                         'Extract a receipt from OCR text. Use only evidence present in the text. '
                         'Do not invent items or amounts. Normalize currency to an ISO 4217 code. '
                         'The item price is the final amount for that receipt line, not a unit price. '
+                        'Copy each item name exactly as it appears in the OCR text into "name"; do not '
+                        'translate or normalize it. Provide a concise English translation in "name_en". '
+                        'If the original is already English or should not be translated, repeat it in '
+                        '"name_en". Never omit "name_en". '
                         'Return exactly one JSON object with this shape: '
                         '{"total": number or null, "currency": ISO code or null, '
-                        '"items": [{"name": string, "price": number, "quantity": number or null}]}. '
+                        '"items": [{"name": string, "name_en": string, "price": number, '
+                        '"quantity": number or null}]}. '
                         'Use null when a value cannot be determined.'
                     ),
                 },
